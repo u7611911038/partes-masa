@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MASA — Partes de Horas</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --rojo: #e2001a;
+    --rojo-oscuro: #b50015;
+    --negro: #f2f2f2;
+    --gris-oscuro: #e0e0e0;
+    --gris-medio: #ebebeb;
+    --gris-panel: #ffffff;
+    --gris-borde: #d0d0d0;
+    --gris-texto: #666666;
+    --blanco: #1a1a1a;
+    --verde: #27ae60;
+    --amarillo: #e67e22;
+    --azul: #2980b9;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #f4f4f4;
+    color: var(--blanco);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    background: #ffffff;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    border-bottom: 4px solid var(--rojo);
+  }
+
+  .logo svg {
+    height: 44px;
+    width: auto;
+  }
+
+  .fecha-header {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: #555;
+    letter-spacing: 1px;
+    text-align: right;
+  }
+
+  /* CONTENEDOR PRINCIPAL */
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+
+  /* PANTALLA DE BIENVENIDA */
+  #pantalla-inicio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .titulo-inicio {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    line-height: 1.1;
+    color: #1a1a1a;
+  }
+
+  .titulo-inicio span { color: var(--rojo); }
+
+  .subtitulo-inicio {
+    color: var(--gris-texto);
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* BÚSQUEDA DE TRABAJADOR */
+  .search-box {
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+  }
+
+  .search-box input {
+    width: 100%;
+    background: var(--gris-panel);
+    border: 2px solid var(--gris-borde);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-size: 18px;
+    color: var(--blanco);
+    font-family: 'Barlow', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box input:focus { border-color: var(--rojo); }
+  .search-box input::placeholder { color: var(--gris-texto); }
+
+  .lista-trabajadores {
+    width: 100%;
+    max-width: 500px;
+    background: var(--gris-panel);
+    border: 2px solid var(--gris-borde);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .lista-trabajadores.visible { display: block; }
+
+  .trabajador-item {
+    padding: 14px 20px;
+    cursor: pointer;
+    font-size: 15px;
+    border-bottom: 1px solid var(--gris-borde);
+    transition: background 0.15s;
+    text-align: left;
+  }
+
+  .trabajador-item:hover { background: var(--gris-medio); color: white; }
+  .trabajador-item:last-child { border-bottom: none; }
+
+  /* FORMULARIO */
+  #pantalla-formulario { display: none; }
+
+  .trabajador-seleccionado {
+    background: var(--gris-panel);
+    border-left: 4px solid var(--rojo);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .trabajador-seleccionado .nombre {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .btn-cambiar {
+    background: transparent;
+    border: 1px solid var(--gris-borde);
+    color: var(--gris-texto);
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Barlow', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .btn-cambiar:hover { border-color: var(--rojo); color: var(--rojo); }
+
+  /* SECCIONES */
+  .seccion {
+    background: var(--gris-panel);
+    border: 1px solid var(--gris-borde);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .seccion-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--rojo);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .seccion-titulo::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--gris-borde);
+  }
+
+  /* TURNO */
+  .turno-opciones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .turno-btn {
+    background: var(--gris-medio);
+    border: 2px solid var(--gris-borde);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+
+  .turno-btn .horas {
+    font-size: 28px;
+    font-weight: 800;
+    display: block;
+    line-height: 1;
+  }
+
+  .turno-btn .rango {
+    font-size: 13px;
+    color: var(--gris-texto);
+    margin-top: 4px;
+    display: block;
+  }
+
+  .turno-btn.activo {
+    border-color: var(--rojo);
+    background: rgba(204,30,30,0.15);
+  }
+
+  .turno-btn.activo .horas { color: var(--rojo); }
+
+  /* OBRAS */
+  .obra-linea {
+    background: var(--gris-medio);
+    border: 1px solid var(--gris-borde);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+
+  .obra-linea-fila {
+    display: grid;
+    grid-template-columns: 1fr 100px 36px;
+    gap: 10px;
+    align-items: center;
+  }
+
+  select, input[type="number"], textarea {
+    background: var(--gris-oscuro);
+    border: 1px solid var(--gris-borde);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--blanco);
+    font-family: 'Barlow', sans-serif;
+    font-size: 15px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  select:focus, input[type="number"]:focus, textarea:focus {
+    border-color: var(--rojo);
+  }
+
+  select option { background: var(--gris-oscuro); }
+
+  .comentario-obra {
+    margin-top: 10px;
+  }
+
+  textarea {
+    resize: none;
+    height: 70px;
+    font-size: 14px;
+  }
+
+  .btn-quitar {
+    background: transparent;
+    border: 1px solid #555;
+    color: #888;
+    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .btn-quitar:hover { background: rgba(204,30,30,0.2); border-color: var(--rojo); color: var(--rojo); }
+
+  .btn-añadir-obra {
+    background: transparent;
+    border: 2px dashed var(--gris-borde);
+    border-radius: 8px;
+    padding: 12px;
+    width: 100%;
+    color: var(--gris-texto);
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+
+  .btn-añadir-obra:hover { border-color: var(--rojo); color: var(--rojo); }
+
+  .label-campo {
+    font-size: 12px;
+    color: var(--gris-texto);
+    margin-bottom: 5px;
+    display: block;
+    letter-spacing: 0.5px;
+  }
+
+  /* PLUSES */
+  .pluses-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .plus-item {
+    background: var(--gris-medio);
+    border: 2px solid var(--gris-borde);
+    border-radius: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+  }
+
+  .plus-item.activo {
+    border-color: var(--amarillo);
+    background: rgba(243,156,18,0.12);
+  }
+
+  .plus-item.bloqueado {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .plus-check {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--gris-borde);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .plus-item.activo .plus-check {
+    background: var(--amarillo);
+    border-color: var(--amarillo);
+    color: var(--negro);
+  }
+
+  .plus-nombre {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .plus-bloqueado-msg {
+    font-size: 11px;
+    color: var(--rojo);
+    margin-top: 2px;
+  }
+
+  /* RETÉN */
+  .reten-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .reten-toggle {
+    background: var(--gris-medio);
+    border: 2px solid var(--gris-borde);
+    border-radius: 20px;
+    width: 48px;
+    height: 26px;
+    position: relative;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .reten-toggle::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: var(--gris-texto);
+    border-radius: 50%;
+    top: 2px;
+    left: 3px;
+    transition: all 0.2s;
+  }
+
+  .reten-toggle.activo {
+    background: rgba(52,152,219,0.3);
+    border-color: var(--azul);
+  }
+
+  .reten-toggle.activo::after {
+    left: 25px;
+    background: var(--azul);
+  }
+
+  .reten-contenido {
+    display: none;
+    margin-top: 16px;
+  }
+
+  .reten-contenido.visible { display: block; }
+
+  .reten-opciones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .reten-btn {
+    background: var(--gris-medio);
+    border: 2px solid var(--gris-borde);
+    border-radius: 8px;
+    padding: 12px 10px;
+    text-align: center;
+    cursor: pointer;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gris-texto);
+    transition: all 0.2s;
+    line-height: 1.3;
+  }
+
+  .reten-btn.activo {
+    border-color: var(--azul);
+    background: rgba(52,152,219,0.15);
+    color: var(--azul);
+  }
+
+  .llamadas-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--gris-medio);
+    border: 1px solid var(--gris-borde);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+
+  .llamadas-label {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .llamadas-label small {
+    display: block;
+    font-size: 11px;
+    color: var(--gris-texto);
+    font-weight: 400;
+  }
+
+  .llamadas-counter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .btn-counter {
+    background: var(--gris-oscuro);
+    border: 1px solid var(--gris-borde);
+    color: var(--blanco);
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-family: 'Barlow', sans-serif;
+  }
+
+  .btn-counter:hover { background: var(--rojo); border-color: var(--rojo); }
+
+  .llamadas-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    min-width: 30px;
+    text-align: center;
+    color: var(--azul);
+  }
+
+  /* RESUMEN DE HORAS */
+  .resumen-horas {
+    background: var(--gris-medio);
+    border: 1px solid var(--gris-borde);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .resumen-item {
+    flex: 1;
+    min-width: 100px;
+    text-align: center;
+  }
+
+  .resumen-valor {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .resumen-item:nth-child(1) .resumen-valor { color: var(--verde); }
+  .resumen-item:nth-child(2) .resumen-valor { color: var(--amarillo); }
+  .resumen-item:nth-child(3) .resumen-valor { color: var(--azul); }
+
+  .resumen-etiqueta {
+    font-size: 11px;
+    color: var(--gris-texto);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* BOTÓN ENVIAR */
+  .btn-enviar {
+    width: 100%;
+    background: var(--rojo);
+    border: none;
+    border-radius: 10px;
+    padding: 20px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+    text-transform: uppercase;
+  }
+
+  .btn-enviar:hover { background: var(--rojo-oscuro); transform: translateY(-1px); }
+  .btn-enviar:active { transform: translateY(0); }
+  .btn-enviar:disabled { background: #555; cursor: not-allowed; transform: none; }
+
+  /* PANTALLA ÉXITO */
+  #pantalla-exito {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .exito-icono {
+    font-size: 80px;
+    animation: pop 0.4s ease-out;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+
+  .exito-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: 2px;
+  }
+
+  .exito-nombre {
+    color: var(--verde);
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .btn-nuevo-parte {
+    background: var(--rojo);
+    border: none;
+    border-radius: 8px;
+    padding: 16px 32px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: white;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: all 0.2s;
+  }
+
+  .btn-nuevo-parte:hover { background: var(--rojo-oscuro); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #333;
+    color: white;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    z-index: 999;
+    transition: transform 0.3s;
+    border-left: 4px solid var(--rojo);
+    white-space: nowrap;
+  }
+
+  .toast.visible { transform: translateX(-50%) translateY(0); }
+  .toast.ok { border-left-color: var(--verde); }
+
+  /* LOADING */
+  .spinner {
+    width: 20px; height: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* AVISO DÍA ESPECIAL */
+  .aviso-dia {
+    background: rgba(243,156,18,0.1);
+    border: 1px solid var(--amarillo);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--amarillo);
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .aviso-dia.visible { display: block; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--gris-oscuro); }
+  ::-webkit-scrollbar-thumb { background: var(--gris-borde); border-radius: 3px; }
+
+  @media (max-width: 480px) {
+    .turno-opciones { grid-template-columns: 1fr 1fr; }
+    .pluses-grid { grid-template-columns: 1fr; }
+    .reten-opciones { grid-template-columns: 1fr 1fr; }
+    .obra-linea-fila { grid-template-columns: 1fr 80px 36px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 160 50" xmlns="http://www.w3.org/2000/svg">
+      <!-- Dos barras diagonales rojas -->
+      <rect x="0" y="6" width="10" height="38" rx="1" fill="#e2001a" transform="skewX(-12)"/>
+      <rect x="14" y="6" width="10" height="38" rx="1" fill="#e2001a" transform="skewX(-12)"/>
+      <!-- Texto MASA -->
+      <text x="34" y="38" font-family="Arial Black, sans-serif" font-size="30" font-weight="900" fill="#e2001a" letter-spacing="1">MASA</text>
+    </svg>
+  </div>
+  <div class="fecha-header" id="fecha-display"></div>
+</header>
+
+<div class="container">
+
+  <!-- PANTALLA INICIO -->
+  <div id="pantalla-inicio">
+    <div class="titulo-inicio">PARTE DE<br><span>HORAS</span></div>
+    <div class="subtitulo-inicio">Selecciona tu nombre para comenzar</div>
+    <div class="search-box">
+      <input type="text" id="buscar-trabajador" placeholder="Escribe tu nombre..." autocomplete="off" />
+      <div class="lista-trabajadores" id="lista-trabajadores"></div>
+    </div>
+  </div>
+
+  <!-- PANTALLA FORMULARIO -->
+  <div id="pantalla-formulario">
+
+    <div class="trabajador-seleccionado">
+      <div>
+        <div style="font-size:12px;color:var(--gris-texto);letter-spacing:1px;margin-bottom:3px">TRABAJADOR</div>
+        <div class="nombre" id="nombre-display"></div>
+      </div>
+      <button class="btn-cambiar" onclick="volverInicio()">Cambiar</button>
+    </div>
+
+    <div class="aviso-dia" id="aviso-dia"></div>
+
+    <!-- TURNO -->
+    <div class="seccion">
+      <div class="seccion-titulo">Turno del día</div>
+      <div class="turno-opciones">
+        <div class="turno-btn" onclick="seleccionarTurno('mañana', this)">
+          <span class="horas">8h</span>
+          <span class="rango">07:00 — 15:00</span>
+        </div>
+        <div class="turno-btn" onclick="seleccionarTurno('noche', this)">
+          <span class="horas">12h</span>
+          <span class="rango">07:00 — 19:00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- OBRAS -->
+    <div class="seccion">
+      <div class="seccion-titulo">Obras y horas</div>
+      <div id="obras-container"></div>
+      <button class="btn-añadir-obra" onclick="añadirObra()">+ Añadir otra obra</button>
+    </div>
+
+    <!-- RESUMEN HORAS -->
+    <div class="seccion">
+      <div class="seccion-titulo">Resumen de horas</div>
+      <div class="resumen-horas">
+        <div class="resumen-item">
+          <div class="resumen-valor" id="res-total">0</div>
+          <div class="resumen-etiqueta">Total horas</div>
+        </div>
+        <div class="resumen-item">
+          <div class="resumen-valor" id="res-normales">0</div>
+          <div class="resumen-etiqueta">Normales</div>
+        </div>
+        <div class="resumen-item">
+          <div class="resumen-valor" id="res-extra">0</div>
+          <div class="resumen-etiqueta">Extra</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLUSES -->
+    <div class="seccion">
+      <div class="seccion-titulo">Pluses</div>
+      <div class="pluses-grid">
+        <div class="plus-item" id="plus-nocturnidad" onclick="togglePlus('nocturnidad')">
+          <div class="plus-check" id="check-nocturnidad"></div>
+          <div>
+            <div class="plus-nombre">Nocturnidad</div>
+          </div>
+        </div>
+        <div class="plus-item" id="plus-turnicidad" onclick="togglePlus('turnicidad')">
+          <div class="plus-check" id="check-turnicidad"></div>
+          <div>
+            <div class="plus-nombre">Turnicidad</div>
+          </div>
+        </div>
+        <div class="plus-item" id="plus-entrada" onclick="togglePlus('entrada')">
+          <div class="plus-check" id="check-entrada"></div>
+          <div>
+            <div class="plus-nombre">Entrada al Complejo</div>
+            <div class="plus-bloqueado-msg" id="msg-entrada"></div>
+          </div>
+        </div>
+        <div class="plus-item" id="plus-taller" onclick="togglePlus('taller')">
+          <div class="plus-check" id="check-taller"></div>
+          <div>
+            <div class="plus-nombre">Plus Taller</div>
+            <div class="plus-bloqueado-msg" id="msg-taller"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RETÉN -->
+    <div class="seccion">
+      <div class="reten-header" onclick="toggleReten()">
+        <div class="seccion-titulo" style="margin-bottom:0;flex:1">Retén</div>
+        <div class="reten-toggle" id="reten-toggle"></div>
+      </div>
+      <div class="reten-contenido" id="reten-contenido">
+        <div class="reten-opciones">
+          <div class="reten-btn" onclick="seleccionarReten('diario', this)">Retén<br>Diario</div>
+          <div class="reten-btn" onclick="seleccionarReten('fin_de_semana', this)">Retén<br>Fin de Semana</div>
+          <div class="reten-btn" onclick="seleccionarReten('festivo', this)">Retén<br>Festivo</div>
+          <div class="reten-btn" onclick="seleccionarReten('semanal', this)">Retén<br>Semanal</div>
+        </div>
+        <div class="llamadas-row">
+          <div class="llamadas-label">
+            Llamadas al retén
+            <small>Cada llamada = 2h extra</small>
+          </div>
+          <div class="llamadas-counter">
+            <button class="btn-counter" onclick="cambiarLlamadas(-1)">−</button>
+            <div class="llamadas-num" id="llamadas-num">0</div>
+            <button class="btn-counter" onclick="cambiarLlamadas(1)">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENVIAR -->
+    <button class="btn-enviar" id="btn-enviar" onclick="enviarParte()">
+      ENVIAR PARTE
+    </button>
+
+  </div>
+
+  <!-- PANTALLA ÉXITO -->
+  <div id="pantalla-exito">
+    <div class="exito-icono">✅</div>
+    <div class="exito-titulo">PARTE ENVIADO</div>
+    <div class="exito-nombre" id="exito-nombre"></div>
+    <div style="color:var(--gris-texto);font-size:14px">El parte ha sido registrado correctamente</div>
+    <button class="btn-nuevo-parte" onclick="nuevoParte()">NUEVO PARTE</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://mudtiqquxycgrzisiydu.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZHRpcXF1eHljZ3J6aXNpeWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODUxNTgsImV4cCI6MjA5MTc2MTE1OH0.fNKzBcz1wmPccXGy2gWpe78tSzTQj5-z9xYeh2BddoM';
+
+const headers = {
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`
+};
+
+// ESTADO
+let trabajadores = [];
+let obras = [];
+let festivos = [];
+let trabajadorSeleccionado = null;
+let turnoSeleccionado = null;
+let retenSeleccionado = 'ninguno';
+let retenAbierto = false;
+let llamadas = 0;
+let pluses = { nocturnidad: false, turnicidad: false, entrada: false, taller: false };
+let esDiaEspecial = false; // fin de semana o festivo
+let obrasLineas = [];
+let contadorObras = 0;
+
+// FECHA
+const hoy = new Date();
+const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const esFinde = hoy.getDay() === 0 || hoy.getDay() === 6;
+
+document.getElementById('fecha-display').innerHTML =
+  `${diasSemana[hoy.getDay()]}<br>${hoy.getDate()} ${meses[hoy.getMonth()]} ${hoy.getFullYear()}`;
+
+const fechaHoy = hoy.toISOString().split('T')[0];
+
+// CARGA INICIAL
+async function cargarDatos() {
+  try {
+    const [rTrab, rObras, rFest] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/trabajadores?activo=eq.true&order=nombre`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/obras?activa=eq.true&order=nombre`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/festivos?select=fecha`, { headers })
+    ]);
+    trabajadores = await rTrab.json();
+    obras = await rObras.json();
+    festivos = (await rFest.json()).map(f => f.fecha);
+
+    esDiaEspecial = esFinde || festivos.includes(fechaHoy);
+    verificarPluses();
+  } catch(e) {
+    mostrarToast('Error al conectar con la base de datos', false);
+  }
+}
+
+// BÚSQUEDA TRABAJADOR
+document.getElementById('buscar-trabajador').addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  const lista = document.getElementById('lista-trabajadores');
+  if (q.length < 2) { lista.classList.remove('visible'); return; }
+  const filtrados = trabajadores.filter(t => t.nombre.toLowerCase().includes(q));
+  lista.innerHTML = filtrados.length
+    ? filtrados.map(t => `<div class="trabajador-item" onclick="seleccionarTrabajador(${t.id}, '${t.nombre.replace(/'/g,"\\'")}')">
+        ${t.nombre}</div>`).join('')
+    : `<div class="trabajador-item" style="color:var(--gris-texto)">No encontrado</div>`;
+  lista.classList.add('visible');
+});
+
+function seleccionarTrabajador(id, nombre) {
+  trabajadorSeleccionado = { id, nombre };
+  document.getElementById('lista-trabajadores').classList.remove('visible');
+  document.getElementById('buscar-trabajador').value = '';
+  document.getElementById('nombre-display').textContent = nombre;
+  document.getElementById('pantalla-inicio').style.display = 'none';
+  document.getElementById('pantalla-formulario').style.display = 'block';
+  resetFormulario();
+  mostrarAvisoDia();
+}
+
+function volverInicio() {
+  trabajadorSeleccionado = null;
+  document.getElementById('pantalla-inicio').style.display = 'flex';
+  document.getElementById('pantalla-formulario').style.display = 'none';
+}
+
+// AVISO DÍA ESPECIAL
+function mostrarAvisoDia() {
+  const aviso = document.getElementById('aviso-dia');
+  if (esFinde) {
+    aviso.textContent = '⚠️ Fin de semana — Todas las horas son EXTRA. Plus Taller y Plus Entrada no disponibles.';
+    aviso.classList.add('visible');
+  } else if (festivos.includes(fechaHoy)) {
+    aviso.textContent = '⚠️ Día festivo — Todas las horas son EXTRA. Plus Taller y Plus Entrada no disponibles.';
+    aviso.classList.add('visible');
+  } else {
+    aviso.classList.remove('visible');
+  }
+}
+
+// TURNO
+function seleccionarTurno(turno, el) {
+  document.querySelectorAll('.turno-btn').forEach(b => b.classList.remove('activo'));
+  el.classList.add('activo');
+  turnoSeleccionado = turno;
+  calcularHoras();
+}
+
+// OBRAS
+function añadirObra() {
+  contadorObras++;
+  const id = contadorObras;
+  obrasLineas.push(id);
+
+  const div = document.createElement('div');
+  div.className = 'obra-linea';
+  div.id = `obra-linea-${id}`;
+  div.innerHTML = `
+    <div class="obra-linea-fila">
+      <div>
+        <label class="label-campo">Obra</label>
+        <select id="obra-select-${id}" onchange="calcularHoras()">
+          <option value="">— Selecciona obra —</option>
+          ${obras.map(o => `<option value="${o.id}">${o.nombre}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label class="label-campo">Horas</label>
+        <input type="number" id="obra-horas-${id}" min="0.5" max="24" step="0.5"
+          placeholder="0" oninput="calcularHoras()" />
+      </div>
+      <button class="btn-quitar" onclick="quitarObra(${id})" title="Quitar">×</button>
+    </div>
+    <div class="comentario-obra">
+      <label class="label-campo">Trabajo realizado en esta obra</label>
+      <textarea id="obra-comentario-${id}" placeholder="Describe brevemente el trabajo ejecutado..."></textarea>
+    </div>
+  `;
+  document.getElementById('obras-container').appendChild(div);
+}
+
+function quitarObra(id) {
+  const el = document.getElementById(`obra-linea-${id}`);
+  if (el) el.remove();
+  obrasLineas = obrasLineas.filter(x => x !== id);
+  calcularHoras();
+}
+
+// CALCULAR HORAS
+function calcularHoras() {
+  let total = 0;
+  obrasLineas.forEach(id => {
+    const h = parseFloat(document.getElementById(`obra-horas-${id}`)?.value) || 0;
+    total += h;
+  });
+
+  let normales = 0, extra = 0;
+  if (esDiaEspecial) {
+    extra = total;
+  } else {
+    normales = Math.min(total, 8);
+    extra = Math.max(0, total - 8);
+  }
+  // Añadir horas de llamadas al retén
+  const hLlamadas = llamadas * 2;
+  extra += hLlamadas;
+
+  document.getElementById('res-total').textContent = total + (hLlamadas > 0 ? `+${hLlamadas}` : '');
+  document.getElementById('res-normales').textContent = normales;
+  document.getElementById('res-extra').textContent = extra || 0;
+}
+
+// PLUSES
+function verificarPluses() {
+  const bloqueados = esDiaEspecial;
+  ['entrada','taller'].forEach(p => {
+    const el = document.getElementById(`plus-${p}`);
+    const msg = document.getElementById(`msg-${p}`);
+    if (bloqueados) {
+      el.classList.add('bloqueado');
+      msg.textContent = 'No aplica hoy';
+      pluses[p] = false;
+      el.classList.remove('activo');
+      document.getElementById(`check-${p}`).textContent = '';
+    } else {
+      el.classList.remove('bloqueado');
+      msg.textContent = '';
+    }
+  });
+}
+
+function togglePlus(plus) {
+  if (['entrada','taller'].includes(plus) && esDiaEspecial) return;
+  pluses[plus] = !pluses[plus];
+  const el = document.getElementById(`plus-${plus}`);
+  const check = document.getElementById(`check-${plus}`);
+  if (pluses[plus]) {
+    el.classList.add('activo');
+    check.textContent = '✓';
+  } else {
+    el.classList.remove('activo');
+    check.textContent = '';
+  }
+}
+
+// RETÉN
+function toggleReten() {
+  retenAbierto = !retenAbierto;
+  document.getElementById('reten-toggle').classList.toggle('activo', retenAbierto);
+  document.getElementById('reten-contenido').classList.toggle('visible', retenAbierto);
+  if (!retenAbierto) {
+    retenSeleccionado = 'ninguno';
+    document.querySelectorAll('.reten-btn').forEach(b => b.classList.remove('activo'));
+    llamadas = 0;
+    document.getElementById('llamadas-num').textContent = '0';
+    calcularHoras();
+  }
+}
+
+function seleccionarReten(tipo, el) {
+  retenSeleccionado = tipo;
+  document.querySelectorAll('.reten-btn').forEach(b => b.classList.remove('activo'));
+  el.classList.add('activo');
+}
+
+function cambiarLlamadas(delta) {
+  llamadas = Math.max(0, llamadas + delta);
+  document.getElementById('llamadas-num').textContent = llamadas;
+  calcularHoras();
+}
+
+// ENVIAR
+async function enviarParte() {
+  // Validaciones
+  if (!turnoSeleccionado) { mostrarToast('Selecciona el turno del día'); return; }
+
+  const lineasValidas = obrasLineas.filter(id => {
+    const obra = document.getElementById(`obra-select-${id}`)?.value;
+    const horas = parseFloat(document.getElementById(`obra-horas-${id}`)?.value);
+    return obra && horas > 0;
+  });
+
+  if (lineasValidas.length === 0) { mostrarToast('Añade al menos una obra con horas'); return; }
+
+  // Calcular totales
+  let totalHoras = 0;
+  lineasValidas.forEach(id => {
+    totalHoras += parseFloat(document.getElementById(`obra-horas-${id}`).value) || 0;
+  });
+
+  let horasNormales = esDiaEspecial ? 0 : Math.min(totalHoras, 8);
+  let horasExtra = esDiaEspecial ? totalHoras : Math.max(0, totalHoras - 8);
+  horasExtra += llamadas * 2;
+
+  const btn = document.getElementById('btn-enviar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Enviando...';
+
+  try {
+    // Crear parte cabecera
+    const parteRes = await fetch(`${SUPABASE_URL}/rest/v1/partes`, {
+      method: 'POST',
+      headers: { ...headers, 'Prefer': 'return=representation' },
+      body: JSON.stringify({
+        trabajador_id: trabajadorSeleccionado.id,
+        fecha: fechaHoy,
+        turno: turnoSeleccionado,
+        plus_nocturnidad: pluses.nocturnidad,
+        plus_turnicidad: pluses.turnicidad,
+        plus_entrada: pluses.entrada,
+        plus_taller: pluses.taller,
+        reten: retenSeleccionado,
+        llamadas: llamadas,
+        total_horas: totalHoras,
+        horas_normales: horasNormales,
+        horas_extra: horasExtra
+      })
+    });
+
+    if (!parteRes.ok) {
+      const err = await parteRes.json();
+      if (err.code === '23505') {
+        mostrarToast('Ya existe un parte para hoy de este trabajador');
+        btn.disabled = false;
+        btn.innerHTML = 'ENVIAR PARTE';
+        return;
+      }
+      throw new Error('Error al crear parte');
+    }
+
+    const parteData = await parteRes.json();
+    const parteId = parteData[0].id;
+
+    // Crear líneas de obra
+    const lineasData = lineasValidas.map(id => ({
+      parte_id: parteId,
+      obra_id: parseInt(document.getElementById(`obra-select-${id}`).value),
+      horas: parseFloat(document.getElementById(`obra-horas-${id}`).value),
+      comentarios: document.getElementById(`obra-comentario-${id}`).value || null
+    }));
+
+    const obrasRes = await fetch(`${SUPABASE_URL}/rest/v1/partes_obras`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(lineasData)
+    });
+
+    if (!obrasRes.ok) throw new Error('Error al guardar obras');
+
+    // Éxito
+    document.getElementById('pantalla-formulario').style.display = 'none';
+    document.getElementById('exito-nombre').textContent = trabajadorSeleccionado.nombre;
+    document.getElementById('pantalla-exito').style.display = 'flex';
+
+  } catch(e) {
+    mostrarToast('Error al enviar el parte. Inténtalo de nuevo.');
+    btn.disabled = false;
+    btn.innerHTML = 'ENVIAR PARTE';
+  }
+}
+
+// RESET
+function resetFormulario() {
+  turnoSeleccionado = null;
+  retenSeleccionado = 'ninguno';
+  retenAbierto = false;
+  llamadas = 0;
+  pluses = { nocturnidad: false, turnicidad: false, entrada: false, taller: false };
+  obrasLineas = [];
+  contadorObras = 0;
+
+  document.querySelectorAll('.turno-btn').forEach(b => b.classList.remove('activo'));
+  document.querySelectorAll('.plus-item').forEach(b => b.classList.remove('activo'));
+  document.querySelectorAll('.plus-check').forEach(b => b.textContent = '');
+  document.querySelectorAll('.reten-btn').forEach(b => b.classList.remove('activo'));
+  document.getElementById('reten-toggle').classList.remove('activo');
+  document.getElementById('reten-contenido').classList.remove('visible');
+  document.getElementById('llamadas-num').textContent = '0';
+  document.getElementById('obras-container').innerHTML = '';
+  document.getElementById('res-total').textContent = '0';
+  document.getElementById('res-normales').textContent = '0';
+  document.getElementById('res-extra').textContent = '0';
+  document.getElementById('btn-enviar').disabled = false;
+  document.getElementById('btn-enviar').innerHTML = 'ENVIAR PARTE';
+
+  verificarPluses();
+  añadirObra(); // Una línea de obra por defecto
+}
+
+function nuevoParte() {
+  trabajadorSeleccionado = null;
+  document.getElementById('pantalla-exito').style.display = 'none';
+  document.getElementById('pantalla-inicio').style.display = 'flex';
+}
+
+// TOAST
+function mostrarToast(msg, esError = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast visible${esError ? '' : ' ok'}`;
+  setTimeout(() => t.classList.remove('visible'), 3500);
+}
+
+// INIT
+cargarDatos();
+document.getElementById('pantalla-inicio').style.display = 'flex';
+</script>
+</body>
+</html>
