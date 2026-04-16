@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MASA — Panel Supervisor</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --rojo: #e2001a;
+    --rojo-oscuro: #b50015;
+    --fondo: #f4f4f4;
+    --panel: #ffffff;
+    --borde: #e0e0e0;
+    --texto: #1a1a1a;
+    --texto-suave: #666;
+    --verde: #27ae60;
+    --amarillo: #e67e22;
+    --azul: #2980b9;
+    --fondo-th: #f8f8f8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* LOGIN */
+  #pantalla-login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--fondo);
+  }
+
+  .login-box {
+    background: white;
+    border-radius: 12px;
+    padding: 48px 40px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+  }
+
+  .login-box svg { height: 52px; margin-bottom: 24px; }
+
+  .login-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--texto-suave);
+    margin-bottom: 28px;
+  }
+
+  .login-input {
+    width: 100%;
+    border: 2px solid var(--borde);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 24px;
+    text-align: center;
+    letter-spacing: 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    outline: none;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .login-input:focus { border-color: var(--rojo); }
+
+  .login-input.error { border-color: var(--rojo); animation: shake 0.3s; }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+
+  .btn-login {
+    width: 100%;
+    background: var(--rojo);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-login:hover { background: var(--rojo-oscuro); }
+
+  .login-error {
+    color: var(--rojo);
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+  }
+
+  /* HEADER */
+  #app { display: none; }
+
+  header {
+    background: white;
+    border-bottom: 4px solid var(--rojo);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  header svg { height: 44px; }
+
+  .header-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--texto-suave);
+    text-transform: uppercase;
+  }
+
+  .btn-cerrar {
+    background: transparent;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--texto-suave);
+    cursor: pointer;
+    font-family: 'Barlow', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .btn-cerrar:hover { border-color: var(--rojo); color: var(--rojo); }
+
+  /* CONTENEDOR */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+
+  /* TARJETAS RESUMEN */
+  .resumen-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid var(--borde);
+    text-align: center;
+  }
+
+  .card-valor {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .card-label {
+    font-size: 12px;
+    color: var(--texto-suave);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .card:nth-child(1) .card-valor { color: var(--rojo); }
+  .card:nth-child(2) .card-valor { color: var(--verde); }
+  .card:nth-child(3) .card-valor { color: var(--amarillo); }
+  .card:nth-child(4) .card-valor { color: var(--azul); }
+
+  /* FILTROS */
+  .filtros-panel {
+    background: white;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .filtros-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--rojo);
+    margin-bottom: 16px;
+  }
+
+  /* TABS VISTA */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .tab {
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: 2px solid var(--borde);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    color: var(--texto-suave);
+  }
+
+  .tab.activo {
+    background: var(--rojo);
+    border-color: var(--rojo);
+    color: white;
+  }
+
+  .filtros-fila {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+
+  .filtro-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .filtro-label {
+    font-size: 12px;
+    color: var(--texto-suave);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  select, input[type="date"] {
+    background: white;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 14px;
+    color: var(--texto);
+    font-family: 'Barlow', sans-serif;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  select:focus, input[type="date"]:focus { border-color: var(--rojo); }
+
+  .btn-buscar {
+    background: var(--rojo);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 24px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-buscar:hover { background: var(--rojo-oscuro); }
+
+  .btn-excel {
+    background: #217346;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 20px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-excel:hover { background: #185c37; }
+
+  /* TABLA */
+  .tabla-panel {
+    background: white;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .tabla-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--borde);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tabla-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .tabla-count {
+    font-size: 13px;
+    color: var(--texto-suave);
+  }
+
+  .tabla-wrapper { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th {
+    background: var(--fondo-th);
+    padding: 12px 14px;
+    text-align: left;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+    border-bottom: 1px solid var(--borde);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: top;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+
+  .nombre-trabajador {
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin: 2px 2px 2px 0;
+  }
+
+  .badge-verde { background: #e8f8f0; color: var(--verde); }
+  .badge-amarillo { background: #fef3e2; color: var(--amarillo); }
+  .badge-azul { background: #eaf4fb; color: var(--azul); }
+  .badge-rojo { background: #fdecea; color: var(--rojo); }
+  .badge-gris { background: #f0f0f0; color: #888; }
+
+  .horas-cell {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .horas-normales { color: var(--verde); }
+  .horas-extra { color: var(--amarillo); }
+
+  .obra-tag {
+    display: inline-block;
+    background: #f0f0f0;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 12px;
+    margin: 2px 2px 2px 0;
+    line-height: 1.4;
+  }
+
+  .comentario-texto {
+    font-size: 12px;
+    color: var(--texto-suave);
+    font-style: italic;
+    margin-top: 3px;
+  }
+
+  /* EXPANDIBLE */
+  .fila-detalle {
+    background: #fafafa;
+    display: none;
+  }
+
+  .fila-detalle.visible { display: table-row; }
+
+  .detalle-contenido {
+    padding: 12px 14px 16px 40px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .detalle-obras {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .detalle-obra-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: white;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+
+  .detalle-obra-nombre {
+    font-weight: 600;
+    font-size: 13px;
+    flex: 1;
+  }
+
+  .detalle-obra-horas {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--rojo);
+    white-space: nowrap;
+  }
+
+  .detalle-obra-comentario {
+    font-size: 12px;
+    color: var(--texto-suave);
+    font-style: italic;
+    margin-top: 3px;
+  }
+
+  .btn-expandir {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--texto-suave);
+    font-size: 16px;
+    padding: 0 4px;
+    transition: transform 0.2s;
+  }
+
+  .btn-expandir.abierto { transform: rotate(90deg); }
+
+  /* LOADING */
+  .loading {
+    text-align: center;
+    padding: 48px;
+    color: var(--texto-suave);
+    font-size: 15px;
+  }
+
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid #eee;
+    border-top-color: var(--rojo);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .sin-datos {
+    text-align: center;
+    padding: 48px;
+    color: var(--texto-suave);
+  }
+
+  .sin-datos-icono { font-size: 48px; margin-bottom: 12px; }
+
+  /* VISTA POR TRABAJADOR */
+  .trabajador-seccion {
+    background: white;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .trabajador-seccion-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--borde);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fafafa;
+  }
+
+  .trabajador-seccion-nombre {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .trabajador-resumen {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .trab-res-item {
+    text-align: center;
+  }
+
+  .trab-res-valor {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+  }
+
+  .trab-res-label {
+    font-size: 10px;
+    color: var(--texto-suave);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  @media (max-width: 768px) {
+    .resumen-cards { grid-template-columns: repeat(2, 1fr); }
+    .filtros-fila { flex-direction: column; }
+    .btn-buscar, .btn-excel { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="pantalla-login">
+  <div class="login-box">
+    <svg viewBox="0 0 160 50" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="6" width="10" height="38" rx="1" fill="#e2001a" transform="skewX(-12)"/>
+      <rect x="14" y="6" width="10" height="38" rx="1" fill="#e2001a" transform="skewX(-12)"/>
+      <text x="34" y="38" font-family="Arial Black, sans-serif" font-size="30" font-weight="900" fill="#e2001a" letter-spacing="1">MASA</text>
+    </svg>
+    <div class="login-titulo">PANEL DE SUPERVISOR</div>
+    <input type="password" class="login-input" id="login-input" placeholder="····" maxlength="6"
+      onkeydown="if(event.key==='Enter') verificarLogin()" />
+    <button class="btn-login" onclick="verificarLogin()">ENTRAR</button>
+    <div class="login-error" id="login-error">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <svg viewBox="0 0 160 50" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="6" width="10" height="38" rx="1" fill="#e2001a" transform="skewX(-12)"/>
+      <rect x="14" y="6" width="10" height="38" rx="1" fill="#e2001a" transform="skewX(-12)"/>
+      <text x="34" y="38" font-family="Arial Black, sans-serif" font-size="30" font-weight="900" fill="#e2001a" letter-spacing="1">MASA</text>
+    </svg>
+    <div class="header-titulo">Panel Supervisor</div>
+    <button class="btn-cerrar" onclick="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <div class="container">
+
+    <!-- CARDS RESUMEN -->
+    <div class="resumen-cards">
+      <div class="card">
+        <div class="card-valor" id="card-partes">—</div>
+        <div class="card-label">Partes</div>
+      </div>
+      <div class="card">
+        <div class="card-valor" id="card-normales">—</div>
+        <div class="card-label">Horas Normales</div>
+      </div>
+      <div class="card">
+        <div class="card-valor" id="card-extra">—</div>
+        <div class="card-label">Horas Extra</div>
+      </div>
+      <div class="card">
+        <div class="card-valor" id="card-llamadas">—</div>
+        <div class="card-label">Llamadas Retén</div>
+      </div>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="filtros-panel">
+      <div class="filtros-titulo">Filtros</div>
+
+      <div class="tabs" style="margin-bottom:16px">
+        <div class="tab activo" id="tab-dia" onclick="cambiarVista('dia')">Por Día</div>
+        <div class="tab" id="tab-trabajador" onclick="cambiarVista('trabajador')">Por Trabajador</div>
+      </div>
+
+      <div class="filtros-fila">
+        <!-- Vista por día -->
+        <div class="filtro-grupo" id="filtro-fecha">
+          <div class="filtro-label">Fecha</div>
+          <input type="date" id="input-fecha" />
+        </div>
+
+        <!-- Vista por trabajador -->
+        <div class="filtro-grupo" id="filtro-trabajador" style="display:none">
+          <div class="filtro-label">Trabajador</div>
+          <select id="select-trabajador">
+            <option value="">— Todos —</option>
+          </select>
+        </div>
+
+        <div class="filtro-grupo" id="filtro-mes" style="display:none">
+          <div class="filtro-label">Mes</div>
+          <input type="month" id="input-mes" style="background:white;border:1px solid var(--borde);border-radius:6px;padding:9px 12px;font-size:14px;color:var(--texto);font-family:'Barlow',sans-serif;outline:none;width:100%" />
+        </div>
+
+        <!-- Filtro obra (ambas vistas) -->
+        <div class="filtro-grupo">
+          <div class="filtro-label">Obra</div>
+          <select id="select-obra">
+            <option value="">— Todas —</option>
+          </select>
+        </div>
+
+        <button class="btn-buscar" onclick="buscar()">BUSCAR</button>
+        <button class="btn-excel" onclick="exportarExcel()">⬇ EXCEL</button>
+      </div>
+    </div>
+
+    <!-- RESULTADOS -->
+    <div id="resultados"></div>
+
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://mudtiqquxycgrzisiydu.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZHRpcXF1eHljZ3J6aXNpeWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODUxNTgsImV4cCI6MjA5MTc2MTE1OH0.fNKzBcz1wmPccXGy2gWpe78tSzTQj5-z9xYeh2BddoM';
+const PASS = '3254';
+
+const headers = {
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`
+};
+
+let vistaActual = 'dia';
+let trabajadores = [];
+let obras = [];
+let datosActuales = [];
+
+// Fecha de hoy por defecto
+const hoy = new Date().toISOString().split('T')[0];
+const mesActual = hoy.slice(0, 7);
+
+// LOGIN
+function verificarLogin() {
+  const val = document.getElementById('login-input').value;
+  if (val === PASS) {
+    document.getElementById('pantalla-login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    inicializar();
+  } else {
+    const inp = document.getElementById('login-input');
+    inp.classList.add('error');
+    document.getElementById('login-error').style.display = 'block';
+    setTimeout(() => inp.classList.remove('error'), 400);
+  }
+}
+
+function cerrarSesion() {
+  document.getElementById('pantalla-login').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-input').value = '';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+async function inicializar() {
+  document.getElementById('input-fecha').value = hoy;
+  document.getElementById('input-mes').value = mesActual;
+
+  const [rT, rO] = await Promise.all([
+    fetch(`${SUPABASE_URL}/rest/v1/trabajadores?activo=eq.true&order=nombre`, { headers }),
+    fetch(`${SUPABASE_URL}/rest/v1/obras?activa=eq.true&order=nombre`, { headers })
+  ]);
+  trabajadores = await rT.json();
+  obras = await rO.json();
+
+  const selT = document.getElementById('select-trabajador');
+  trabajadores.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.id; o.textContent = t.nombre;
+    selT.appendChild(o);
+  });
+
+  const selO = document.getElementById('select-obra');
+  obras.forEach(o => {
+    const op = document.createElement('option');
+    op.value = o.id; op.textContent = o.nombre;
+    selO.appendChild(op);
+  });
+
+  buscar();
+}
+
+// TABS
+function cambiarVista(vista) {
+  vistaActual = vista;
+  document.getElementById('tab-dia').classList.toggle('activo', vista === 'dia');
+  document.getElementById('tab-trabajador').classList.toggle('activo', vista === 'trabajador');
+  document.getElementById('filtro-fecha').style.display = vista === 'dia' ? 'flex' : 'none';
+  document.getElementById('filtro-trabajador').style.display = vista === 'trabajador' ? 'flex' : 'none';
+  document.getElementById('filtro-mes').style.display = vista === 'trabajador' ? 'flex' : 'none';
+  buscar();
+}
+
+// BUSCAR
+async function buscar() {
+  document.getElementById('resultados').innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      Cargando partes...
+    </div>`;
+
+  try {
+    let url = `${SUPABASE_URL}/rest/v1/partes?select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&order=created_at.desc`;
+
+    if (vistaActual === 'dia') {
+      const fecha = document.getElementById('input-fecha').value;
+      if (fecha) url += `&fecha=eq.${fecha}`;
+    } else {
+      const trabId = document.getElementById('select-trabajador').value;
+      const mes = document.getElementById('input-mes').value;
+      if (trabId) url += `&trabajador_id=eq.${trabId}`;
+      if (mes) {
+        const desde = `${mes}-01`;
+        const hasta = `${mes}-31`;
+        url += `&fecha=gte.${desde}&fecha=lte.${hasta}`;
+      }
+    }
+
+    const obraId = document.getElementById('select-obra').value;
+
+    const res = await fetch(url, { headers });
+    let partes = await res.json();
+
+    // Filtrar por obra si está seleccionada
+    if (obraId) {
+      partes = partes.filter(p => p.partes_obras?.some(po => po.obra_id == obraId));
+    }
+
+    datosActuales = partes;
+    actualizarCards(partes);
+
+    if (vistaActual === 'dia') {
+      renderTabla(partes);
+    } else {
+      renderPorTrabajador(partes);
+    }
+
+  } catch(e) {
+    document.getElementById('resultados').innerHTML = `<div class="sin-datos"><div class="sin-datos-icono">⚠️</div>Error al cargar datos</div>`;
+  }
+}
+
+// CARDS
+function actualizarCards(partes) {
+  const totalNormales = partes.reduce((s, p) => s + (p.horas_normales || 0), 0);
+  const totalExtra = partes.reduce((s, p) => s + (p.horas_extra || 0), 0);
+  const totalLlamadas = partes.reduce((s, p) => s + (p.llamadas || 0), 0);
+  document.getElementById('card-partes').textContent = partes.length;
+  document.getElementById('card-normales').textContent = totalNormales.toFixed(1);
+  document.getElementById('card-extra').textContent = totalExtra.toFixed(1);
+  document.getElementById('card-llamadas').textContent = totalLlamadas;
+}
+
+// RENDER TABLA POR DÍA
+function renderTabla(partes) {
+  if (partes.length === 0) {
+    document.getElementById('resultados').innerHTML = `
+      <div class="tabla-panel">
+        <div class="sin-datos">
+          <div class="sin-datos-icono">📋</div>
+          No hay partes para esta búsqueda
+        </div>
+      </div>`;
+    return;
+  }
+
+  const fecha = document.getElementById('input-fecha').value;
+  const fechaFormateada = fecha ? new Date(fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) : '';
+
+  let html = `
+    <div class="tabla-panel">
+      <div class="tabla-header">
+        <div class="tabla-titulo">${fechaFormateada}</div>
+        <div class="tabla-count">${partes.length} parte${partes.length !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="tabla-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Trabajador</th>
+              <th>Turno</th>
+              <th>Obras</th>
+              <th>H. Normales</th>
+              <th>H. Extra</th>
+              <th>Pluses</th>
+              <th>Retén</th>
+              <th>Llamadas</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+  partes.forEach((p, i) => {
+    const obras = p.partes_obras || [];
+    const pluses = [];
+    if (p.plus_nocturnidad) pluses.push('<span class="badge badge-azul">NOCTURNIDAD</span>');
+    if (p.plus_turnicidad) pluses.push('<span class="badge badge-azul">TURNICIDAD</span>');
+    if (p.plus_entrada) pluses.push('<span class="badge badge-amarillo">ENTRADA</span>');
+    if (p.plus_taller) pluses.push('<span class="badge badge-amarillo">TALLER</span>');
+
+    const retenTexto = {
+      'ninguno': '', 'diario': 'Diario', 'fin_de_semana': 'Fin de Semana',
+      'festivo': 'Festivo', 'semanal': 'Semanal'
+    }[p.reten] || '';
+
+    html += `
+      <tr>
+        <td><button class="btn-expandir" onclick="toggleDetalle(${p.id})" id="btn-${p.id}">▶</button></td>
+        <td><div class="nombre-trabajador">${p.trabajadores?.nombre || '—'}</div></td>
+        <td><span class="badge ${p.turno === 'mañana' ? 'badge-verde' : 'badge-azul'}">${p.turno === 'mañana' ? '8H' : p.turno === 'noche' ? '12H' : p.turno}</span></td>
+        <td>${obras.map(o => `<span class="obra-tag">${o.obras?.nombre || '—'} <strong>${o.horas}h</strong></span>`).join('')}</td>
+        <td><span class="horas-cell horas-normales">${p.horas_normales || 0}</span></td>
+        <td><span class="horas-cell horas-extra">${p.horas_extra || 0}</span></td>
+        <td>${pluses.join('') || '<span style="color:#ccc">—</span>'}</td>
+        <td>${retenTexto ? `<span class="badge badge-azul">${retenTexto}</span>` : '<span style="color:#ccc">—</span>'}</td>
+        <td>${p.llamadas > 0 ? `<span class="badge badge-rojo">${p.llamadas}</span>` : '<span style="color:#ccc">0</span>'}</td>
+      </tr>
+      <tr class="fila-detalle" id="detalle-${p.id}">
+        <td colspan="9">
+          <div class="detalle-contenido">
+            <div class="detalle-obras">
+              ${obras.length > 0 ? obras.map(o => `
+                <div class="detalle-obra-item">
+                  <div style="flex:1">
+                    <div class="detalle-obra-nombre">${o.obras?.nombre || '—'}</div>
+                    ${o.comentarios ? `<div class="detalle-obra-comentario">"${o.comentarios}"</div>` : ''}
+                  </div>
+                  <div class="detalle-obra-horas">${o.horas}h</div>
+                </div>`).join('') : '<div style="color:#999;font-size:13px">Sin detalle de obras</div>'}
+            </div>
+          </div>
+        </td>
+      </tr>`;
+  });
+
+  html += `</tbody></table></div></div>`;
+  document.getElementById('resultados').innerHTML = html;
+}
+
+// TOGGLE DETALLE
+function toggleDetalle(id) {
+  const fila = document.getElementById(`detalle-${id}`);
+  const btn = document.getElementById(`btn-${id}`);
+  fila.classList.toggle('visible');
+  btn.classList.toggle('abierto');
+}
+
+// RENDER POR TRABAJADOR
+function renderPorTrabajador(partes) {
+  if (partes.length === 0) {
+    document.getElementById('resultados').innerHTML = `
+      <div class="tabla-panel">
+        <div class="sin-datos">
+          <div class="sin-datos-icono">📋</div>
+          No hay partes para esta búsqueda
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Agrupar por trabajador
+  const grupos = {};
+  partes.forEach(p => {
+    const nombre = p.trabajadores?.nombre || 'Desconocido';
+    if (!grupos[nombre]) grupos[nombre] = [];
+    grupos[nombre].push(p);
+  });
+
+  let html = '';
+  Object.entries(grupos).sort().forEach(([nombre, partesTrab]) => {
+    const totalNorm = partesTrab.reduce((s, p) => s + (p.horas_normales || 0), 0);
+    const totalExtra = partesTrab.reduce((s, p) => s + (p.horas_extra || 0), 0);
+    const totalLlam = partesTrab.reduce((s, p) => s + (p.llamadas || 0), 0);
+
+    html += `
+      <div class="trabajador-seccion">
+        <div class="trabajador-seccion-header">
+          <div class="trabajador-seccion-nombre">${nombre}</div>
+          <div class="trabajador-resumen">
+            <div class="trab-res-item">
+              <div class="trab-res-valor" style="color:var(--rojo)">${partesTrab.length}</div>
+              <div class="trab-res-label">Días</div>
+            </div>
+            <div class="trab-res-item">
+              <div class="trab-res-valor" style="color:var(--verde)">${totalNorm.toFixed(1)}</div>
+              <div class="trab-res-label">H. Norm.</div>
+            </div>
+            <div class="trab-res-item">
+              <div class="trab-res-valor" style="color:var(--amarillo)">${totalExtra.toFixed(1)}</div>
+              <div class="trab-res-label">H. Extra</div>
+            </div>
+            <div class="trab-res-item">
+              <div class="trab-res-valor" style="color:var(--azul)">${totalLlam}</div>
+              <div class="trab-res-label">Llamadas</div>
+            </div>
+          </div>
+        </div>
+        <div class="tabla-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Turno</th>
+                <th>Obras</th>
+                <th>H. Normales</th>
+                <th>H. Extra</th>
+                <th>Pluses</th>
+                <th>Retén</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
+    partesTrab.sort((a,b) => a.fecha > b.fecha ? 1 : -1).forEach(p => {
+      const obras = p.partes_obras || [];
+      const pluses = [];
+      if (p.plus_nocturnidad) pluses.push('NOCT.');
+      if (p.plus_turnicidad) pluses.push('TURN.');
+      if (p.plus_entrada) pluses.push('ENTR.');
+      if (p.plus_taller) pluses.push('TALL.');
+      const retenTexto = { 'ninguno': '—', 'diario': 'Diario', 'fin_de_semana': 'F.Semana', 'festivo': 'Festivo', 'semanal': 'Semanal' }[p.reten] || '—';
+      const fechaStr = new Date(p.fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' });
+
+      html += `
+        <tr>
+          <td style="white-space:nowrap;font-weight:600">${fechaStr}</td>
+          <td><span class="badge ${p.turno === 'mañana' ? 'badge-verde' : 'badge-azul'}">${p.turno === 'mañana' ? '8H' : '12H'}</span></td>
+          <td>${obras.map(o => `<div><span class="obra-tag">${o.obras?.nombre || '—'} <strong>${o.horas}h</strong></span>${o.comentarios ? `<div class="comentario-texto">"${o.comentarios}"</div>` : ''}</div>`).join('')}</td>
+          <td><span class="horas-cell horas-normales">${p.horas_normales || 0}</span></td>
+          <td><span class="horas-cell horas-extra">${p.horas_extra || 0}</span></td>
+          <td>${pluses.length ? pluses.map(pl => `<span class="badge badge-amarillo">${pl}</span>`).join('') : '—'}</td>
+          <td>${retenTexto !== '—' ? `<span class="badge badge-azul">${retenTexto}</span>` : '—'}${p.llamadas > 0 ? ` <span class="badge badge-rojo">${p.llamadas} llam.</span>` : ''}</td>
+        </tr>`;
+    });
+
+    html += `</tbody></table></div></div>`;
+  });
+
+  document.getElementById('resultados').innerHTML = html;
+}
+
+// EXPORTAR EXCEL
+function exportarExcel() {
+  if (!datosActuales.length) { alert('No hay datos para exportar'); return; }
+
+  const filas = [];
+  datosActuales.forEach(p => {
+    const obras = p.partes_obras || [];
+    if (obras.length === 0) {
+      filas.push(crearFila(p, null));
+    } else {
+      obras.forEach(o => filas.push(crearFila(p, o)));
+    }
+  });
+
+  const ws = XLSX.utils.json_to_sheet(filas);
+
+  // Anchos de columna
+  ws['!cols'] = [
+    {wch:12},{wch:35},{wch:10},{wch:30},{wch:12},{wch:12},{wch:12},
+    {wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:20},{wch:40}
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Partes');
+
+  const nombre = vistaActual === 'dia'
+    ? `partes_${document.getElementById('input-fecha').value}`
+    : `partes_${document.getElementById('input-mes').value}`;
+
+  XLSX.writeFile(wb, `${nombre}.xlsx`);
+}
+
+function crearFila(p, o) {
+  return {
+    'Fecha': p.fecha,
+    'Trabajador': p.trabajadores?.nombre || '',
+    'Turno': p.turno,
+    'Obra': o?.obras?.nombre || '',
+    'Horas Obra': o?.horas || '',
+    'H. Normales': p.horas_normales || 0,
+    'H. Extra': p.horas_extra || 0,
+    'Plus Nocturnidad': p.plus_nocturnidad ? 'SÍ' : '',
+    'Plus Turnicidad': p.plus_turnicidad ? 'SÍ' : '',
+    'Plus Entrada': p.plus_entrada ? 'SÍ' : '',
+    'Plus Taller': p.plus_taller ? 'SÍ' : '',
+    'Retén': p.reten !== 'ninguno' ? p.reten : '',
+    'Llamadas Retén': p.llamadas || 0,
+    'Comentario Obra': o?.comentarios || ''
+  };
+}
+</script>
+</body>
+</html>
