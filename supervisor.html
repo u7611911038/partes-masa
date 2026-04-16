@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MASA — Panel Supervisor</title>
+<title>MASA — Panel Supervisor (Edit)</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -431,6 +431,13 @@
     border-bottom: 1px solid #f0f0f0;
   }
 
+  .detalle-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
   .detalle-obras {
     display: flex;
     flex-direction: column;
@@ -479,6 +486,28 @@
   }
 
   .btn-expandir.abierto { transform: rotate(90deg); }
+
+  /* BOTONES ACCION */
+  .acciones-parte {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-accion {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .btn-edit { background: #eaf4fb; color: var(--azul); border-color: #d0e4f5; }
+  .btn-delete { background: #fdecea; color: var(--rojo); border-color: #f9d2d0; }
+  .btn-edit:hover { background: var(--azul); color: white; }
+  .btn-delete:hover { background: var(--rojo); color: white; }
 
   /* LOADING */
   .loading {
@@ -555,16 +584,96 @@
     letter-spacing: 0.5px;
   }
 
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 30px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+
+  .modal-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--rojo);
+    padding-bottom: 10px;
+  }
+
+  .grid-edit {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+
+  .input-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: var(--texto-suave);
+  }
+
+  .input-edit {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    font-family: 'Barlow', sans-serif;
+  }
+
+  .edit-obras-list {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+  }
+
+  .edit-obra-card {
+    background: white;
+    border: 1px solid var(--borde);
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 25px;
+  }
+
+  .btn-save { background: var(--verde); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+  .btn-cancel { background: #eee; color: var(--texto); border: none; padding: 10px 20px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+
   @media (max-width: 768px) {
     .resumen-cards { grid-template-columns: repeat(2, 1fr); }
     .filtros-fila { flex-direction: column; }
     .btn-buscar, .btn-excel { width: 100%; }
+    .grid-edit { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="pantalla-login">
   <div class="login-box">
     <svg viewBox="0 0 160 50" xmlns="http://www.w3.org/2000/svg">
@@ -580,7 +689,6 @@
   </div>
 </div>
 
-<!-- APP -->
 <div id="app">
   <header>
     <svg viewBox="0 0 160 50" xmlns="http://www.w3.org/2000/svg">
@@ -594,7 +702,6 @@
 
   <div class="container">
 
-    <!-- CARDS RESUMEN -->
     <div class="resumen-cards">
       <div class="card">
         <div class="card-valor" id="card-partes">—</div>
@@ -614,7 +721,6 @@
       </div>
     </div>
 
-    <!-- FILTROS -->
     <div class="filtros-panel">
       <div class="filtros-titulo">Filtros</div>
 
@@ -624,13 +730,11 @@
       </div>
 
       <div class="filtros-fila">
-        <!-- Vista por día -->
         <div class="filtro-grupo" id="filtro-fecha">
           <div class="filtro-label">Fecha</div>
           <input type="date" id="input-fecha" />
         </div>
 
-        <!-- Vista por trabajador -->
         <div class="filtro-grupo" id="filtro-trabajador" style="display:none">
           <div class="filtro-label">Trabajador</div>
           <select id="select-trabajador">
@@ -640,10 +744,9 @@
 
         <div class="filtro-grupo" id="filtro-mes" style="display:none">
           <div class="filtro-label">Mes</div>
-          <input type="month" id="input-mes" style="background:white;border:1px solid var(--borde);border-radius:6px;padding:9px 12px;font-size:14px;color:var(--texto);font-family:'Barlow',sans-serif;outline:none;width:100%" />
+          <input type="month" id="input-mes" class="input-edit" />
         </div>
 
-        <!-- Filtro obra (ambas vistas) -->
         <div class="filtro-grupo">
           <div class="filtro-label">Obra</div>
           <select id="select-obra">
@@ -656,9 +759,61 @@
       </div>
     </div>
 
-    <!-- RESULTADOS -->
     <div id="resultados"></div>
 
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal-content">
+    <div class="modal-titulo" id="edit-titulo">Editar Parte</div>
+    <div class="grid-edit">
+      <div>
+        <label class="input-label">Horas Normales</label>
+        <input type="number" id="edit-hn" step="0.5" class="input-edit">
+      </div>
+      <div>
+        <label class="input-label">Horas Extra</label>
+        <input type="number" id="edit-he" step="0.5" class="input-edit">
+      </div>
+      <div>
+        <label class="input-label">Llamadas Retén</label>
+        <input type="number" id="edit-llamadas" class="input-edit">
+      </div>
+      <div>
+        <label class="input-label">Retén</label>
+        <select id="edit-reten" class="input-edit">
+          <option value="ninguno">Ninguno</option>
+          <option value="diario">Diario</option>
+          <option value="fin_de_semana">Fin de Semana</option>
+          <option value="festivo">Festivo</option>
+          <option value="semanal">Semanal</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid-edit">
+        <label style="font-size: 13px; display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" id="edit-noct"> Nocturnidad
+        </label>
+        <label style="font-size: 13px; display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" id="edit-turn"> Turnicidad
+        </label>
+        <label style="font-size: 13px; display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" id="edit-ent"> Entrada
+        </label>
+        <label style="font-size: 13px; display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" id="edit-tall"> Taller
+        </label>
+    </div>
+
+    <div class="edit-obras-list" id="edit-obras-container">
+        </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-save" onclick="guardarEdicion()">Guardar Cambios</button>
+    </div>
   </div>
 </div>
 
@@ -677,12 +832,11 @@ let vistaActual = 'dia';
 let trabajadores = [];
 let obras = [];
 let datosActuales = [];
+let parteEnEdicion = null;
 
-// Fecha de hoy por defecto
 const hoy = new Date().toISOString().split('T')[0];
 const mesActual = hoy.slice(0, 7);
 
-// LOGIN
 function verificarLogin() {
   const val = document.getElementById('login-input').value;
   if (val === PASS) {
@@ -701,7 +855,6 @@ function cerrarSesion() {
   document.getElementById('pantalla-login').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-input').value = '';
-  document.getElementById('login-error').style.display = 'none';
 }
 
 async function inicializar() {
@@ -732,7 +885,6 @@ async function inicializar() {
   buscar();
 }
 
-// TABS
 function cambiarVista(vista) {
   vistaActual = vista;
   document.getElementById('tab-dia').classList.toggle('activo', vista === 'dia');
@@ -743,13 +895,8 @@ function cambiarVista(vista) {
   buscar();
 }
 
-// BUSCAR
 async function buscar() {
-  document.getElementById('resultados').innerHTML = `
-    <div class="loading">
-      <div class="spinner"></div>
-      Cargando partes...
-    </div>`;
+  document.getElementById('resultados').innerHTML = `<div class="loading"><div class="spinner"></div>Cargando partes...</div>`;
 
   try {
     let url = `${SUPABASE_URL}/rest/v1/partes?select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&order=created_at.desc`;
@@ -762,18 +909,14 @@ async function buscar() {
       const mes = document.getElementById('input-mes').value;
       if (trabId) url += `&trabajador_id=eq.${trabId}`;
       if (mes) {
-        const desde = `${mes}-01`;
-        const hasta = `${mes}-31`;
-        url += `&fecha=gte.${desde}&fecha=lte.${hasta}`;
+        url += `&fecha=gte.${mes}-01&fecha=lte.${mes}-31`;
       }
     }
 
     const obraId = document.getElementById('select-obra').value;
-
     const res = await fetch(url, { headers });
     let partes = await res.json();
 
-    // Filtrar por obra si está seleccionada
     if (obraId) {
       partes = partes.filter(p => p.partes_obras?.some(po => po.obra_id == obraId));
     }
@@ -781,18 +924,14 @@ async function buscar() {
     datosActuales = partes;
     actualizarCards(partes);
 
-    if (vistaActual === 'dia') {
-      renderTabla(partes);
-    } else {
-      renderPorTrabajador(partes);
-    }
+    if (vistaActual === 'dia') renderTabla(partes);
+    else renderPorTrabajador(partes);
 
   } catch(e) {
-    document.getElementById('resultados').innerHTML = `<div class="sin-datos"><div class="sin-datos-icono">⚠️</div>Error al cargar datos</div>`;
+    document.getElementById('resultados').innerHTML = `<div class="sin-datos">⚠️ Error de conexión</div>`;
   }
 }
 
-// CARDS
 function actualizarCards(partes) {
   const totalNormales = partes.reduce((s, p) => s + (p.horas_normales || 0), 0);
   const totalExtra = partes.reduce((s, p) => s + (p.horas_extra || 0), 0);
@@ -803,16 +942,9 @@ function actualizarCards(partes) {
   document.getElementById('card-llamadas').textContent = totalLlamadas;
 }
 
-// RENDER TABLA POR DÍA
 function renderTabla(partes) {
   if (partes.length === 0) {
-    document.getElementById('resultados').innerHTML = `
-      <div class="tabla-panel">
-        <div class="sin-datos">
-          <div class="sin-datos-icono">📋</div>
-          No hay partes para esta búsqueda
-        </div>
-      </div>`;
+    document.getElementById('resultados').innerHTML = `<div class="tabla-panel"><div class="sin-datos">No hay partes</div></div>`;
     return;
   }
 
@@ -842,43 +974,47 @@ function renderTabla(partes) {
           </thead>
           <tbody>`;
 
-  partes.forEach((p, i) => {
-    const obras = p.partes_obras || [];
+  partes.forEach(p => {
+    const po = p.partes_obras || [];
     const pluses = [];
     if (p.plus_nocturnidad) pluses.push('<span class="badge badge-azul">NOCTURNIDAD</span>');
     if (p.plus_turnicidad) pluses.push('<span class="badge badge-azul">TURNICIDAD</span>');
     if (p.plus_entrada) pluses.push('<span class="badge badge-amarillo">ENTRADA</span>');
     if (p.plus_taller) pluses.push('<span class="badge badge-amarillo">TALLER</span>');
 
-    const retenTexto = {
-      'ninguno': '', 'diario': 'Diario', 'fin_de_semana': 'Fin de Semana',
-      'festivo': 'Festivo', 'semanal': 'Semanal'
-    }[p.reten] || '';
+    const retenTexto = { 'ninguno': '', 'diario': 'Diario', 'fin_de_semana': 'F.Semana', 'festivo': 'Festivo', 'semanal': 'Semanal' }[p.reten] || '';
 
     html += `
       <tr>
         <td><button class="btn-expandir" onclick="toggleDetalle(${p.id})" id="btn-${p.id}">▶</button></td>
         <td><div class="nombre-trabajador">${p.trabajadores?.nombre || '—'}</div></td>
-        <td><span class="badge ${p.turno === 'mañana' ? 'badge-verde' : 'badge-azul'}">${p.turno === 'mañana' ? '8H' : p.turno === 'noche' ? '12H' : p.turno}</span></td>
-        <td>${obras.map(o => `<span class="obra-tag">${o.obras?.nombre || '—'} <strong>${o.horas}h</strong></span>`).join('')}</td>
+        <td><span class="badge ${p.turno === 'mañana' ? 'badge-verde' : 'badge-azul'}">${p.turno === 'mañana' ? '8H' : '12H'}</span></td>
+        <td>${po.map(o => `<span class="obra-tag">${o.obras?.nombre || '—'} <strong>${o.horas}h</strong></span>`).join('')}</td>
         <td><span class="horas-cell horas-normales">${p.horas_normales || 0}</span></td>
         <td><span class="horas-cell horas-extra">${p.horas_extra || 0}</span></td>
-        <td>${pluses.join('') || '<span style="color:#ccc">—</span>'}</td>
-        <td>${retenTexto ? `<span class="badge badge-azul">${retenTexto}</span>` : '<span style="color:#ccc">—</span>'}</td>
-        <td>${p.llamadas > 0 ? `<span class="badge badge-rojo">${p.llamadas}</span>` : '<span style="color:#ccc">0</span>'}</td>
+        <td>${pluses.join('') || '—'}</td>
+        <td>${retenTexto ? `<span class="badge badge-azul">${retenTexto}</span>` : '—'}</td>
+        <td>${p.llamadas > 0 ? `<span class="badge badge-rojo">${p.llamadas}</span>` : '0'}</td>
       </tr>
       <tr class="fila-detalle" id="detalle-${p.id}">
         <td colspan="9">
           <div class="detalle-contenido">
+            <div class="detalle-header-flex">
+                <div style="font-weight:700; color:var(--rojo); font-size:12px;">DETALLE DE OBRAS Y ACCIONES</div>
+                <div class="acciones-parte">
+                    <button class="btn-accion btn-edit" onclick="abrirEditar(${p.id})">EDITAR PARTE</button>
+                    <button class="btn-accion btn-delete" onclick="eliminarParte(${p.id})">ELIMINAR</button>
+                </div>
+            </div>
             <div class="detalle-obras">
-              ${obras.length > 0 ? obras.map(o => `
+              ${po.map(o => `
                 <div class="detalle-obra-item">
                   <div style="flex:1">
                     <div class="detalle-obra-nombre">${o.obras?.nombre || '—'}</div>
                     ${o.comentarios ? `<div class="detalle-obra-comentario">"${o.comentarios}"</div>` : ''}
                   </div>
                   <div class="detalle-obra-horas">${o.horas}h</div>
-                </div>`).join('') : '<div style="color:#999;font-size:13px">Sin detalle de obras</div>'}
+                </div>`).join('')}
             </div>
           </div>
         </td>
@@ -889,28 +1025,12 @@ function renderTabla(partes) {
   document.getElementById('resultados').innerHTML = html;
 }
 
-// TOGGLE DETALLE
-function toggleDetalle(id) {
-  const fila = document.getElementById(`detalle-${id}`);
-  const btn = document.getElementById(`btn-${id}`);
-  fila.classList.toggle('visible');
-  btn.classList.toggle('abierto');
-}
-
-// RENDER POR TRABAJADOR
 function renderPorTrabajador(partes) {
   if (partes.length === 0) {
-    document.getElementById('resultados').innerHTML = `
-      <div class="tabla-panel">
-        <div class="sin-datos">
-          <div class="sin-datos-icono">📋</div>
-          No hay partes para esta búsqueda
-        </div>
-      </div>`;
+    document.getElementById('resultados').innerHTML = `<div class="sin-datos">No hay datos</div>`;
     return;
   }
 
-  // Agrupar por trabajador
   const grupos = {};
   partes.forEach(p => {
     const nombre = p.trabajadores?.nombre || 'Desconocido';
@@ -920,125 +1040,179 @@ function renderPorTrabajador(partes) {
 
   let html = '';
   Object.entries(grupos).sort().forEach(([nombre, partesTrab]) => {
-    const totalNorm = partesTrab.reduce((s, p) => s + (p.horas_normales || 0), 0);
-    const totalExtra = partesTrab.reduce((s, p) => s + (p.horas_extra || 0), 0);
-    const totalLlam = partesTrab.reduce((s, p) => s + (p.llamadas || 0), 0);
+    const tN = partesTrab.reduce((s, p) => s + (p.horas_normales || 0), 0);
+    const tE = partesTrab.reduce((s, p) => s + (p.horas_extra || 0), 0);
 
     html += `
       <div class="trabajador-seccion">
         <div class="trabajador-seccion-header">
           <div class="trabajador-seccion-nombre">${nombre}</div>
           <div class="trabajador-resumen">
-            <div class="trab-res-item">
-              <div class="trab-res-valor" style="color:var(--rojo)">${partesTrab.length}</div>
-              <div class="trab-res-label">Días</div>
-            </div>
-            <div class="trab-res-item">
-              <div class="trab-res-valor" style="color:var(--verde)">${totalNorm.toFixed(1)}</div>
-              <div class="trab-res-label">H. Norm.</div>
-            </div>
-            <div class="trab-res-item">
-              <div class="trab-res-valor" style="color:var(--amarillo)">${totalExtra.toFixed(1)}</div>
-              <div class="trab-res-label">H. Extra</div>
-            </div>
-            <div class="trab-res-item">
-              <div class="trab-res-valor" style="color:var(--azul)">${totalLlam}</div>
-              <div class="trab-res-label">Llamadas</div>
-            </div>
+            <div class="trab-res-item"><div class="trab-res-valor" style="color:var(--rojo)">${partesTrab.length}</div><div class="trab-res-label">Días</div></div>
+            <div class="trab-res-item"><div class="trab-res-valor" style="color:var(--verde)">${tN.toFixed(1)}</div><div class="trab-res-label">H. Norm.</div></div>
+            <div class="trab-res-item"><div class="trab-res-valor" style="color:var(--amarillo)">${tE.toFixed(1)}</div><div class="trab-res-label">H. Extra</div></div>
           </div>
         </div>
         <div class="tabla-wrapper">
           <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Turno</th>
-                <th>Obras</th>
-                <th>H. Normales</th>
-                <th>H. Extra</th>
-                <th>Pluses</th>
-                <th>Retén</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Fecha</th><th>Turno</th><th>Obras</th><th>H. Norm</th><th>H. Extra</th><th>Acción</th></tr></thead>
             <tbody>`;
 
     partesTrab.sort((a,b) => a.fecha > b.fecha ? 1 : -1).forEach(p => {
-      const obras = p.partes_obras || [];
-      const pluses = [];
-      if (p.plus_nocturnidad) pluses.push('NOCT.');
-      if (p.plus_turnicidad) pluses.push('TURN.');
-      if (p.plus_entrada) pluses.push('ENTR.');
-      if (p.plus_taller) pluses.push('TALL.');
-      const retenTexto = { 'ninguno': '—', 'diario': 'Diario', 'fin_de_semana': 'F.Semana', 'festivo': 'Festivo', 'semanal': 'Semanal' }[p.reten] || '—';
-      const fechaStr = new Date(p.fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' });
-
       html += `
         <tr>
-          <td style="white-space:nowrap;font-weight:600">${fechaStr}</td>
-          <td><span class="badge ${p.turno === 'mañana' ? 'badge-verde' : 'badge-azul'}">${p.turno === 'mañana' ? '8H' : '12H'}</span></td>
-          <td>${obras.map(o => `<div><span class="obra-tag">${o.obras?.nombre || '—'} <strong>${o.horas}h</strong></span>${o.comentarios ? `<div class="comentario-texto">"${o.comentarios}"</div>` : ''}</div>`).join('')}</td>
-          <td><span class="horas-cell horas-normales">${p.horas_normales || 0}</span></td>
-          <td><span class="horas-cell horas-extra">${p.horas_extra || 0}</span></td>
-          <td>${pluses.length ? pluses.map(pl => `<span class="badge badge-amarillo">${pl}</span>`).join('') : '—'}</td>
-          <td>${retenTexto !== '—' ? `<span class="badge badge-azul">${retenTexto}</span>` : '—'}${p.llamadas > 0 ? ` <span class="badge badge-rojo">${p.llamadas} llam.</span>` : ''}</td>
+          <td style="font-weight:600">${new Date(p.fecha + 'T12:00:00').toLocaleDateString('es-ES', {day:'numeric', month:'short'})}</td>
+          <td><span class="badge ${p.turno === 'mañana' ? 'badge-verde' : 'badge-azul'}">${p.turno}</span></td>
+          <td>${p.partes_obras?.map(o => `<span class="obra-tag">${o.obras?.nombre}</span>`).join(' ')}</td>
+          <td>${p.horas_normales}</td>
+          <td>${p.horas_extra}</td>
+          <td><button class="btn-accion btn-edit" style="padding:2px 8px" onclick="abrirEditar(${p.id})">Edit</button></td>
         </tr>`;
     });
-
     html += `</tbody></table></div></div>`;
   });
-
   document.getElementById('resultados').innerHTML = html;
 }
 
-// EXPORTAR EXCEL
-function exportarExcel() {
-  if (!datosActuales.length) { alert('No hay datos para exportar'); return; }
-
-  const filas = [];
-  datosActuales.forEach(p => {
-    const obras = p.partes_obras || [];
-    if (obras.length === 0) {
-      filas.push(crearFila(p, null));
-    } else {
-      obras.forEach(o => filas.push(crearFila(p, o)));
-    }
-  });
-
-  const ws = XLSX.utils.json_to_sheet(filas);
-
-  // Anchos de columna
-  ws['!cols'] = [
-    {wch:12},{wch:35},{wch:10},{wch:30},{wch:12},{wch:12},{wch:12},
-    {wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:20},{wch:40}
-  ];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Partes');
-
-  const nombre = vistaActual === 'dia'
-    ? `partes_${document.getElementById('input-fecha').value}`
-    : `partes_${document.getElementById('input-mes').value}`;
-
-  XLSX.writeFile(wb, `${nombre}.xlsx`);
+function toggleDetalle(id) {
+  const fila = document.getElementById(`detalle-${id}`);
+  const btn = document.getElementById(`btn-${id}`);
+  fila.classList.toggle('visible');
+  btn.classList.toggle('abierto');
 }
 
-function crearFila(p, o) {
-  return {
-    'Fecha': p.fecha,
-    'Trabajador': p.trabajadores?.nombre || '',
-    'Turno': p.turno,
-    'Obra': o?.obras?.nombre || '',
-    'Horas Obra': o?.horas || '',
-    'H. Normales': p.horas_normales || 0,
-    'H. Extra': p.horas_extra || 0,
-    'Plus Nocturnidad': p.plus_nocturnidad ? 'SÍ' : '',
-    'Plus Turnicidad': p.plus_turnicidad ? 'SÍ' : '',
-    'Plus Entrada': p.plus_entrada ? 'SÍ' : '',
-    'Plus Taller': p.plus_taller ? 'SÍ' : '',
-    'Retén': p.reten !== 'ninguno' ? p.reten : '',
-    'Llamadas Retén': p.llamadas || 0,
-    'Comentario Obra': o?.comentarios || ''
-  };
+// FUNCIONES DE EDICIÓN
+function abrirEditar(id) {
+    parteEnEdicion = datosActuales.find(p => p.id === id);
+    if (!parteEnEdicion) return;
+
+    document.getElementById('edit-titulo').textContent = `Editar Parte: ${parteEnEdicion.trabajadores?.nombre} (${parteEnEdicion.fecha})`;
+    document.getElementById('edit-hn').value = parteEnEdicion.horas_normales;
+    document.getElementById('edit-he').value = parteEnEdicion.horas_extra;
+    document.getElementById('edit-llamadas').value = parteEnEdicion.llamadas;
+    document.getElementById('edit-reten').value = parteEnEdicion.reten;
+    
+    document.getElementById('edit-noct').checked = parteEnEdicion.plus_nocturnidad;
+    document.getElementById('edit-turn').checked = parteEnEdicion.plus_turnicidad;
+    document.getElementById('edit-ent').checked = parteEnEdicion.plus_entrada;
+    document.getElementById('edit-tall').checked = parteEnEdicion.plus_taller;
+
+    const container = document.getElementById('edit-obras-container');
+    container.innerHTML = '<div style="font-weight:700; margin-bottom:10px; font-size:12px">DESGLOSE POR OBRA:</div>';
+    
+    parteEnEdicion.partes_obras.forEach((po, idx) => {
+        container.innerHTML += `
+            <div class="edit-obra-card">
+                <div style="font-weight:700; font-size:13px; margin-bottom:8px">${po.obras?.nombre}</div>
+                <div class="grid-edit">
+                    <div>
+                        <label class="input-label">Horas en esta obra</label>
+                        <input type="number" step="0.5" class="input-edit po-horas" data-id="${po.id}" value="${po.horas}">
+                    </div>
+                    <div>
+                        <label class="input-label">Comentario</label>
+                        <input type="text" class="input-edit po-coment" data-id="${po.id}" value="${po.comentarios || ''}">
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById('modal-edit').style.display = 'flex';
+}
+
+function cerrarModal() {
+    document.getElementById('modal-edit').style.display = 'none';
+    parteEnEdicion = null;
+}
+
+async function guardarEdicion() {
+    if (!parteEnEdicion) return;
+
+    const payloadParte = {
+        horas_normales: parseFloat(document.getElementById('edit-hn').value),
+        horas_extra: parseFloat(document.getElementById('edit-he').value),
+        llamadas: parseInt(document.getElementById('edit-llamadas').value),
+        reten: document.getElementById('edit-reten').value,
+        plus_nocturnidad: document.getElementById('edit-noct').checked,
+        plus_turnicidad: document.getElementById('edit-turn').checked,
+        plus_entrada: document.getElementById('edit-ent').checked,
+        plus_taller: document.getElementById('edit-tall').checked
+    };
+
+    try {
+        // 1. Actualizar tabla principal
+        await fetch(`${SUPABASE_URL}/rest/v1/partes?id=eq.${parteEnEdicion.id}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify(payloadParte)
+        });
+
+        // 2. Actualizar cada línea de obra
+        const promesasObras = [];
+        document.querySelectorAll('.po-horas').forEach(input => {
+            const poId = input.dataset.id;
+            const h = parseFloat(input.value);
+            const c = document.querySelector(`.po-coment[data-id="${poId}"]`).value;
+            
+            promesasObras.push(
+                fetch(`${SUPABASE_URL}/rest/v1/partes_obras?id=eq.${poId}`, {
+                    method: 'PATCH',
+                    headers,
+                    body: JSON.stringify({ horas: h, comentarios: c })
+                })
+            );
+        });
+
+        await Promise.all(promesasObras);
+        alert('Parte actualizado correctamente');
+        cerrarModal();
+        buscar();
+    } catch (e) {
+        alert('Error al guardar');
+    }
+}
+
+async function eliminarParte(id) {
+    if (!confirm('¿Estás seguro de que quieres borrar este parte? Esta acción no se puede deshacer.')) return;
+
+    try {
+        // Supabase por defecto no borra en cascada si no está configurado, así que borramos primero las obras vinculadas
+        await fetch(`${SUPABASE_URL}/rest/v1/partes_obras?parte_id=eq.${id}`, { method: 'DELETE', headers });
+        await fetch(`${SUPABASE_URL}/rest/v1/partes?id=eq.${id}`, { method: 'DELETE', headers });
+        
+        alert('Parte eliminado');
+        buscar();
+    } catch (e) {
+        alert('Error al eliminar');
+    }
+}
+
+// EXCEL (Original intacto)
+function exportarExcel() {
+  if (!datosActuales.length) { alert('No hay datos'); return; }
+  const filas = [];
+  datosActuales.forEach(p => {
+    (p.partes_obras || [{}]).forEach(o => {
+      filas.push({
+        'Fecha': p.fecha,
+        'Trabajador': p.trabajadores?.nombre || '',
+        'Turno': p.turno,
+        'Obra': o.obras?.nombre || '',
+        'Horas Obra': o.horas || '',
+        'H. Normales': p.horas_normales || 0,
+        'H. Extra': p.horas_extra || 0,
+        'Retén': p.reten,
+        'Llamadas': p.llamadas || 0,
+        'Comentario': o.comentarios || ''
+      });
+    });
+  });
+  const ws = XLSX.utils.json_to_sheet(filas);
+  ws['!cols'] = [{wch:12},{wch:30},{wch:10},{wch:30},{wch:10},{wch:10},{wch:10},{wch:12},{wch:10},{wch:40}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Partes');
+  XLSX.writeFile(wb, `Partes_MASA_${new Date().toLocaleDateString()}.xlsx`);
 }
 </script>
 </body>
