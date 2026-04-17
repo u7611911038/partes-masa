@@ -66,6 +66,28 @@
     padding: 24px 16px 60px;
   }
 
+  /* PANTALLA GEO */
+  #pantalla-geo {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    text-align: center;
+    gap: 16px;
+    padding: 24px;
+  }
+  .geo-icono { font-size: 64px; margin-bottom: 4px; }
+  .geo-titulo { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: 1px; }
+  .geo-subtitulo { color: var(--gris-texto); font-size: 14px; max-width: 340px; line-height: 1.5; }
+  .geo-estado { border: 1px solid var(--gris-borde); border-radius: 10px; padding: 14px 20px; font-size: 14px; max-width: 340px; width: 100%; background: var(--gris-panel); }
+  .geo-ok { border-color: var(--verde) !important; background: #f0fdf4 !important; color: var(--verde); font-weight: 700; }
+  .geo-error { border-color: var(--rojo) !important; background: #fff0f0 !important; color: var(--rojo); font-weight: 700; }
+  .geo-cargando { color: var(--gris-texto); }
+  .btn-geo { background: var(--rojo); color: white; border: none; border-radius: 8px; padding: 14px 32px; font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: background 0.2s; }
+  .btn-geo:hover { background: var(--rojo-oscuro); }
+  .btn-geo:disabled { background: #aaa; cursor: not-allowed; }
+
   /* PANTALLA DE BIENVENIDA */
   #pantalla-inicio {
     display: flex;
@@ -718,6 +740,15 @@
 
 <div class="container">
 
+  <!-- PANTALLA GEO -->
+  <div id="pantalla-geo">
+    <div class="geo-icono" id="geo-icono">📍</div>
+    <div class="geo-titulo" id="geo-titulo">Verificando ubicación</div>
+    <div class="geo-subtitulo" id="geo-subtitulo">Necesitamos confirmar que estás en las instalaciones para registrar el parte.</div>
+    <div class="geo-estado geo-cargando" id="geo-estado">🔍 Obteniendo tu ubicación...</div>
+    <button class="btn-geo" id="btn-geo" onclick="verificarGeo()" style="display:none">REINTENTAR</button>
+  </div>
+
   <!-- PANTALLA INICIO -->
   <div id="pantalla-inicio">
     <div class="titulo-inicio">PARTE DE<br><span>HORAS</span></div>
@@ -865,6 +896,77 @@
 <script>
 const SUPABASE_URL = 'https://mudtiqquxycgrzisiydu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZHRpcXF1eHljZ3J6aXNpeWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODUxNTgsImV4cCI6MjA5MTc2MTE1OH0.fNKzBcz1wmPccXGy2gWpe78tSzTQj5-z9xYeh2BddoM';
+
+// ─── GEOLOCALIZACIÓN ──────────────────────────────────────
+// Zonas permitidas: MASA Puertollano + casa pruebas Ciudad Real
+const ZONAS_PERMITIDAS = [
+  { nombre: 'MASA Puertollano',        lat: 38.6795718, lon: -4.0693399, radio: 150 },
+  { nombre: 'Pruebas Ciudad Real',     lat: 38.9852451, lon: -3.9211868, radio: 200 },
+];
+
+function distanciaMetros(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function verificarGeo() {
+  document.getElementById('pantalla-geo').style.display = 'flex';
+  document.getElementById('pantalla-inicio').style.display = 'none';
+  document.getElementById('btn-geo').style.display = 'none';
+  document.getElementById('geo-icono').textContent = '📍';
+  document.getElementById('geo-titulo').textContent = 'Verificando ubicación';
+  document.getElementById('geo-estado').className = 'geo-estado geo-cargando';
+  document.getElementById('geo-estado').textContent = '🔍 Obteniendo tu ubicación...';
+
+  if (!navigator.geolocation) {
+    mostrarGeoError('Tu dispositivo no soporta geolocalización.');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude, longitude } = pos.coords;
+      const zonaOk = ZONAS_PERMITIDAS.find(z => distanciaMetros(latitude, longitude, z.lat, z.lon) <= z.radio);
+
+      if (zonaOk) {
+        document.getElementById('geo-icono').textContent = '✅';
+        document.getElementById('geo-titulo').textContent = '¡Ubicación verificada!';
+        document.getElementById('geo-estado').className = 'geo-estado geo-ok';
+        document.getElementById('geo-estado').textContent = `📍 ${zonaOk.nombre} — Acceso permitido`;
+        setTimeout(() => {
+          document.getElementById('pantalla-geo').style.display = 'none';
+          document.getElementById('pantalla-inicio').style.display = 'flex';
+        }, 1200);
+      } else {
+        document.getElementById('geo-icono').textContent = '🚫';
+        document.getElementById('geo-titulo').textContent = 'Fuera de zona';
+        document.getElementById('geo-estado').className = 'geo-estado geo-error';
+        document.getElementById('geo-estado').textContent = `No estás en las instalaciones. Debes estar en el centro de trabajo para fichar.`;
+        document.getElementById('btn-geo').style.display = 'inline-block';
+      }
+    },
+    err => {
+      let msg = 'No se pudo obtener la ubicación.';
+      if (err.code === 1) msg = 'Permiso de ubicación denegado. Actívalo en la configuración del navegador.';
+      if (err.code === 2) msg = 'Señal GPS no disponible. Intenta en otro lugar.';
+      if (err.code === 3) msg = 'Tiempo agotado. Intenta de nuevo.';
+      mostrarGeoError(msg);
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+function mostrarGeoError(msg) {
+  document.getElementById('geo-icono').textContent = '⚠️';
+  document.getElementById('geo-titulo').textContent = 'Error de ubicación';
+  document.getElementById('geo-estado').className = 'geo-estado geo-error';
+  document.getElementById('geo-estado').textContent = msg;
+  document.getElementById('btn-geo').style.display = 'inline-block';
+}
+// ─────────────────────────────────────────────────────────
 
 const headers = {
   'Content-Type': 'application/json',
@@ -1225,7 +1327,9 @@ function mostrarToast(msg, esError = true) {
 
 // INIT
 cargarDatos();
-document.getElementById('pantalla-inicio').style.display = 'flex';
+// Arrancar con verificación de ubicación
+verificarGeo();
+
 </script>
 </body>
 </html>
