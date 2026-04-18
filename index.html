@@ -1004,7 +1004,7 @@ async function cargarDatos() {
   try {
     const [rTrab, rObras, rFest] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/trabajadores?activo=eq.true&order=nombre`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/obras?activa=eq.true&order=nombre`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/obras?select=id,nombre,numero,activa&activa=eq.true&order=nombre`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/festivos?select=fecha`, { headers })
     ]);
     trabajadores = await rTrab.json();
@@ -1085,7 +1085,7 @@ function añadirObra() {
         <label class="label-campo">Obra</label>
         <select id="obra-select-${id}" onchange="calcularHoras()">
           <option value="">— Selecciona obra —</option>
-          ${obras.map(o => `<option value="${o.id}">${o.nombre}</option>`).join('')}
+          ${obras.map(o => `<option value="${o.id}">${o.numero ? o.numero+' — ' : ''}${o.nombre}</option>`).join('')}
         </select>
       </div>
       <div>
