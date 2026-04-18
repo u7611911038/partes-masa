@@ -376,7 +376,7 @@ async function init(){
 
   const[rT,rO,rF]=await Promise.all([
     fetch(SU+'/rest/v1/trabajadores?activo=eq.true&order=nombre',{headers:H}),
-    fetch(SU+'/rest/v1/obras?activa=eq.true&order=nombre',{headers:H}),
+    fetch(SU+'/rest/v1/obras?select=id,nombre,numero,activa&activa=eq.true&order=nombre',{headers:H}),
     fetch(SU+'/rest/v1/festivos?select=fecha',{headers:H})
   ]);
   trabs=await rT.json(); obras=await rO.json();
@@ -387,7 +387,7 @@ async function init(){
 
   [document.getElementById('s-o'), document.getElementById('sp-o')].forEach(sel=>{
     if(!sel) return;
-    obras.forEach(o=>{const op=new Option(o.nombre,o.id);sel.add(op);});
+    obras.forEach(o=>{const op=new Option((o.numero?o.numero+' — ':'')+o.nombre,o.id);sel.add(op);});
   });
 
   buscar();
@@ -423,7 +423,7 @@ function cambiarVista(v){
 async function buscar(){
   document.getElementById('resultados').innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
 
-  let params='select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&order=fecha.desc,created_at.desc';
+  let params='select=*,trabajadores(nombre),partes_obras(*,obras(id,nombre,numero))&order=fecha.desc,created_at.desc';
 
   if(vista==='dia'){
     const f1=document.getElementById('i-f1').value;
@@ -475,7 +475,7 @@ async function fetchParaExcel(){
   const [anio,mesNum]=mes.split('-');
   const ultimoDia=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
   const hasta=mes+'-'+String(ultimoDia).padStart(2,'0');
-  const url=SU+'/rest/v1/partes?select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&fecha=gte.'+mes+'-01&fecha=lte.'+hasta+'&order=fecha.asc';
+  const url=SU+'/rest/v1/partes?select=*,trabajadores(nombre),partes_obras(*,obras(id,nombre,numero))&fecha=gte.'+mes+'-01&fecha=lte.'+hasta+'&order=fecha.asc';
   const res=await fetch(url,{headers:H});
   if(!res.ok){const t=await res.text();throw new Error('HTTP '+res.status+': '+t);}
   const data=await res.json();
@@ -532,7 +532,7 @@ function renderDia(partes){
       <td style="white-space:nowrap;font-weight:600">${fechaStr}</td>
       <td><div class="nc">${p.trabajadores?.nombre||'—'}</div></td>
       <td><span class="ba baz">${p.turno==='mañana'?'8H':'12H'}</span></td>
-      <td>${obs.map(o=>`<span class="ot">${o.obras?.nombre||'—'} <b>${o.horas}h</b></span>`).join('')}</td>
+      <td>${obs.map(o=>`<span class="ot">${o.obras?.numero?o.obras.numero+' — ':''}${o.obras?.nombre||'—'} <b>${o.horas}h</b></span>`).join('')}</td>
       <td><span class="hn">${p.horas_normales||0}</span></td>
       <td><span class="he">${p.horas_extra||0}</span></td>
       <td>${pl.join('')||'—'}</td>
@@ -578,7 +578,7 @@ function renderTrab(partes){
       html+=`<tr>
         <td style="white-space:nowrap;font-weight:600">${fs}</td>
         <td><span class="ba baz">${p.turno==='mañana'?'8H':'12H'}</span></td>
-        <td>${obs.map(o=>`<div><span class="ot">${o.obras?.nombre||'—'} <b>${o.horas}h</b></span>${o.comentarios?`<div style="font-size:11px;color:var(--txt2);font-style:italic">"${o.comentarios}"</div>`:''}</div>`).join('')}</td>
+        <td>${obs.map(o=>`<div><span class="ot">${o.obras?.numero?o.obras.numero+' — ':''}${o.obras?.nombre||'—'} <b>${o.horas}h</b></span>${o.comentarios?`<div style="font-size:11px;color:var(--txt2);font-style:italic">"${o.comentarios}"</div>`:''}</div>`).join('')}</td>
         <td><span class="hn">${p.horas_normales||0}</span></td>
         <td><span class="he">${p.horas_extra||0}</span></td>
         <td>${pl.map(x=>`<span class="ba bam">${x}</span>`).join('')||'—'}</td>
@@ -761,7 +761,7 @@ async function buscarProyectos(){
   }
 
   try{
-    const url=SU+'/rest/v1/partes?select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&validado_jefe_obra=eq.true&fecha=gte.'+desde+'&fecha=lte.'+hasta+'&order=fecha.asc';
+    const url=SU+'/rest/v1/partes?select=*,trabajadores(nombre),partes_obras(*,obras(id,nombre,numero))&validado_jefe_obra=eq.true&fecha=gte.'+desde+'&fecha=lte.'+hasta+'&order=fecha.asc';
     const res=await fetch(url,{headers:H});
     const txt=await res.text();
     if(!res.ok) throw new Error('HTTP '+res.status+': '+txt);
@@ -858,7 +858,7 @@ async function xlsObras(){
       acum+=h;
       filas.push({
         'Fecha':p.fecha,'Trabajador':p.trabajadores?.nombre||'',
-        'Turno':p.turno,'Nº Proyecto / Obra':o.obras?.nombre||'',
+        'Turno':p.turno,'Nº Proyecto / Obra':(o.obras?.numero?o.obras.numero+' — ':'')+( o.obras?.nombre||''),
         'Horas Obra':h,'H. Normales':hN,'H. Extra':hE,
         'Plus Nocturnidad':p.plus_nocturnidad?'SÍ':'',
         'Plus Turnicidad':p.plus_turnicidad?'SÍ':'',
@@ -1028,7 +1028,7 @@ async function xlsNominas(){
 async function xlsProyectos(){
   const obraId=document.getElementById('sp-o').value;
   const periodo=document.getElementById('sp-per').value;
-  let params='select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&validado_jefe_obra=eq.true&order=fecha.asc';
+  let params='select=*,trabajadores(nombre),partes_obras(*,obras(id,nombre,numero))&validado_jefe_obra=eq.true&order=fecha.asc';
 
   if(periodo==='mes'){
     const mes=document.getElementById('sp-mes').value;
@@ -1055,7 +1055,7 @@ async function xlsProyectos(){
         if(obraId&&obraId!==''&&o.obra_id!=obraId) return;
         filas.push({
           'Fecha':p.fecha,'Trabajador':p.trabajadores?.nombre||'',
-          'Proyecto':o.obras?.nombre||'','Horas':o.horas||0,
+          'Proyecto':(o.obras?.numero?o.obras.numero+' — ':'')+( o.obras?.nombre||''),'Horas':o.horas||0,
           'Comentario':o.comentarios||''
         });
       });
