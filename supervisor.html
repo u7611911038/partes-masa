@@ -212,14 +212,17 @@
           <div class="tab" id="t-trab" onclick="cambiarVista('trabajador')">Por Trabajador</div>
         </div>
         <div class="fila">
-          <div class="fg" id="fg-f"><label>Fecha</label><input type="date" id="i-f"/></div>
+          <!-- Vista por día: rango desde/hasta -->
+          <div class="fg" id="fg-f1"><label>Fecha desde</label><input type="date" id="i-f1"/></div>
+          <div class="fg" id="fg-f2"><label>Fecha hasta</label><input type="date" id="i-f2"/></div>
+          <!-- Vista por trabajador -->
           <div class="fg" id="fg-m" style="display:none"><label>Mes</label><input type="month" id="i-m"/></div>
           <div class="fg" id="fg-t" style="display:none"><label>Trabajador</label><select id="s-t"><option value="">— Todos —</option></select></div>
           <div class="fg"><label>Obra</label><select id="s-o"><option value="">— Todas —</option></select></div>
           <div class="fg"><label>Estado</label>
             <select id="s-e">
-              <option value="">— Todos —</option>
               <option value="pendiente">Pendientes</option>
+              <option value="">— Todos —</option>
               <option value="supervisor">Validados supervisor</option>
               <option value="aprobado">Aprobados jefe obra</option>
             </select>
@@ -363,9 +366,12 @@ function doLogout(){
 // ─── INIT ─────────────────────────────────────────────────
 async function init(){
   const hoy=new Date().toISOString().split('T')[0];
-  document.getElementById('i-f').value=hoy;
-  document.getElementById('i-m').value=hoy.slice(0,7);
-  if(document.getElementById('sp-mes')) document.getElementById('sp-mes').value=hoy.slice(0,7);
+  const mesActual=hoy.slice(0,7);
+  // Por defecto: desde el 1 del mes actual hasta hoy
+  document.getElementById('i-f1').value=mesActual+'-01';
+  document.getElementById('i-f2').value=hoy;
+  document.getElementById('i-m').value=mesActual;
+  if(document.getElementById('sp-mes')) document.getElementById('sp-mes').value=mesActual;
 
   const[rT,rO,rF]=await Promise.all([
     fetch(SU+'/rest/v1/trabajadores?activo=eq.true&order=nombre',{headers:H}),
@@ -375,7 +381,6 @@ async function init(){
   trabs=await rT.json(); obras=await rO.json();
   festivos=(await rF.json()).map(f=>f.fecha);
 
-  // Poblar selects trabajadores y obras
   const st=document.getElementById('s-t');
   trabs.forEach(t=>{const o=new Option(t.nombre,t.id);st.add(o);});
 
@@ -407,7 +412,8 @@ function cambiarVista(v){
   vista=v;
   document.getElementById('t-dia').classList.toggle('on',v==='dia');
   document.getElementById('t-trab').classList.toggle('on',v==='trabajador');
-  document.getElementById('fg-f').style.display=v==='dia'?'flex':'none';
+  document.getElementById('fg-f1').style.display=v==='dia'?'flex':'none';
+  document.getElementById('fg-f2').style.display=v==='dia'?'flex':'none';
   document.getElementById('fg-m').style.display=v==='trabajador'?'flex':'none';
   document.getElementById('fg-t').style.display=v==='trabajador'?'flex':'none';
 }
@@ -416,12 +422,13 @@ function cambiarVista(v){
 async function buscar(){
   document.getElementById('resultados').innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>';
 
-  // Construir URL manualmente para evitar bugs con los filtros
   let params='select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&order=fecha.desc,created_at.desc';
 
   if(vista==='dia'){
-    const f=document.getElementById('i-f').value;
-    if(f) params+=`&fecha=eq.${f}`;
+    const f1=document.getElementById('i-f1').value;
+    const f2=document.getElementById('i-f2').value;
+    if(f1) params+=`&fecha=gte.${f1}`;
+    if(f2) params+=`&fecha=lte.${f2}`;
   } else {
     const mes=document.getElementById('i-m').value;
     const tid=document.getElementById('s-t').value;
@@ -448,6 +455,19 @@ async function buscar(){
   } catch(e){
     document.getElementById('resultados').innerHTML='<div class="tpanel"><div class="empty">⚠️ Error al cargar datos</div></div>';
   }
+}
+
+// Construir params para Excel (consulta directa a Supabase, no depende de lo visible)
+async function fetchParaExcel(){
+  // Usar siempre vista por trabajador+mes para Excel (el mes del filtro activo)
+  const mes=document.getElementById('i-m').value||document.getElementById('i-f1').value?.slice(0,7)||new Date().toISOString().slice(0,7);
+  let params=`select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&fecha=gte.${mes}-01&fecha=lte.${mes}-31&order=fecha.asc`;
+  const est=document.getElementById('s-e').value;
+  // Para Excel de nóminas cogemos todos (validados y pendientes del mes)
+  // Para Excel de obras solo los aprobados si está filtrado así
+  if(est==='aprobado') params+='&validado_jefe_obra=eq.true';
+  const res=await fetch(`${SU}/rest/v1/partes?${params}`,{headers:H});
+  return await res.json();
 }
 
 // ─── CARDS ────────────────────────────────────────────────
@@ -479,12 +499,14 @@ function eBtns(p){
 // ─── RENDER DÍA ───────────────────────────────────────────
 function renderDia(partes){
   if(!partes.length){document.getElementById('resultados').innerHTML='<div class="tpanel"><div class="empty">📋 No hay partes para esta búsqueda</div></div>';return;}
-  const f=document.getElementById('i-f').value;
-  const fs=f?new Date(f+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'';
+  const f1=document.getElementById('i-f1').value;
+  const f2=document.getElementById('i-f2').value;
+  const fmt=f=>f?new Date(f+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}):'';
+  const titulo=f1&&f2&&f1===f2?fmt(f1):(f1||f2?`${fmt(f1)} — ${fmt(f2)}`:'Todos los partes');
   const rm={ninguno:'—',diario:'Diario',fin_de_semana:'F.Sem',festivo:'Fest',semanal:'Sem'};
-  let h=`<div class="tpanel"><div class="thead2"><div class="ttit">${fs}</div><div style="font-size:13px;color:var(--txt2)">${partes.length} parte${partes.length!==1?'s':''}</div></div>
+  let h=`<div class="tpanel"><div class="thead2"><div class="ttit">${titulo}</div><div style="font-size:13px;color:var(--txt2)">${partes.length} parte${partes.length!==1?'s':''}</div></div>
   <div class="twrap"><table><thead><tr>
-    <th>Trabajador</th><th>Turno</th><th>Obras</th><th>H.Norm</th><th>H.Extra</th><th>Pluses</th><th>Retén</th><th>Llam.</th><th>Estado</th><th>Acciones</th>
+    <th>Fecha</th><th>Trabajador</th><th>Turno</th><th>Obras</th><th>H.Norm</th><th>H.Extra</th><th>Pluses</th><th>Retén</th><th>Llam.</th><th>Estado</th><th>Acciones</th>
   </tr></thead><tbody>`;
   partes.forEach(p=>{
     const obs=p.partes_obras||[];
@@ -493,7 +515,9 @@ function renderDia(partes){
     if(p.plus_turnicidad)pl.push('<span class="ba baz">TURN</span>');
     if(p.plus_entrada)pl.push('<span class="ba bam">ENTR</span>');
     if(p.plus_taller)pl.push('<span class="ba bam">TALL</span>');
+    const fechaStr=new Date(p.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
     h+=`<tr>
+      <td style="white-space:nowrap;font-weight:600">${fechaStr}</td>
       <td><div class="nc">${p.trabajadores?.nombre||'—'}</div></td>
       <td><span class="ba baz">${p.turno==='mañana'?'8H':'12H'}</span></td>
       <td>${obs.map(o=>`<span class="ot">${o.obras?.nombre||'—'} <b>${o.horas}h</b></span>`).join('')}</td>
@@ -794,10 +818,11 @@ async function buscarProyectos(){
 }
 
 // ─── EXCEL OBRAS ──────────────────────────────────────────
-function xlsObras(){
-  if(!datos.length){alert('No hay datos');return;}
+async function xlsObras(){
+  const partes=await fetchParaExcel();
+  if(!partes.length){alert('No hay datos para exportar');return;}
   const filas=[];
-  datos.forEach(p=>{
+  partes.forEach(p=>{
     const obs=p.partes_obras||[];
     let acum=0;
     const esp=esFD(p.fecha);
@@ -829,12 +854,13 @@ function xlsObras(){
   XLSX.writeFile(wb,'MASA_Obras_'+new Date().toISOString().split('T')[0]+'.xlsx');
 }
 
-// ─── EXCEL NÓMINAS (formato hoja de horas MASA) ───────────
-function xlsNominas(){
-  if(!datos.length){alert('No hay datos');return;}
+// ─── EXCEL NÓMINAS ────────────────────────────────────────
+async function xlsNominas(){
+  const partes=await fetchParaExcel();
+  if(!partes.length){alert('No hay datos para exportar');return;}
   const wb=XLSX.utils.book_new();
   const grupos={};
-  datos.forEach(p=>{const n=p.trabajadores?.nombre||'?';if(!grupos[n])grupos[n]=[];grupos[n].push(p);});
+  partes.forEach(p=>{const n=p.trabajadores?.nombre||'?';if(!grupos[n])grupos[n]=[];grupos[n].push(p);});
 
   // Hoja RESUMEN
   const resumen=[];
@@ -859,7 +885,7 @@ function xlsNominas(){
   XLSX.utils.book_append_sheet(wb,wsRes,'RESUMEN');
 
   // Una hoja por trabajador — formato Hoja de Horas MASA
-  const mes=document.getElementById('i-m').value||new Date().toISOString().slice(0,7);
+  const mes=document.getElementById('i-m').value||document.getElementById('i-f1').value?.slice(0,7)||new Date().toISOString().slice(0,7);
   const [anio,mesNum]=mes.split('-');
   const diasDelMes=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
 
