@@ -367,11 +367,12 @@ function doLogout(){
 async function init(){
   const hoy=new Date().toISOString().split('T')[0];
   const mesActual=hoy.slice(0,7);
-  // Por defecto: desde el 1 del mes actual hasta hoy
   document.getElementById('i-f1').value=mesActual+'-01';
   document.getElementById('i-f2').value=hoy;
   document.getElementById('i-m').value=mesActual;
-  if(document.getElementById('sp-mes')) document.getElementById('sp-mes').value=mesActual;
+  // Rellenar sp-mes siempre aunque el panel esté oculto
+  const spMes=document.getElementById('sp-mes');
+  if(spMes) spMes.value=mesActual;
 
   const[rT,rO,rF]=await Promise.all([
     fetch(SU+'/rest/v1/trabajadores?activo=eq.true&order=nombre',{headers:H}),
@@ -459,13 +460,17 @@ async function buscar(){
 
 // Construir params para Excel (consulta directa a Supabase, no depende de lo visible)
 async function fetchParaExcel(){
-  // Usar siempre vista por trabajador+mes para Excel (el mes del filtro activo)
-  const mes=document.getElementById('i-m').value||document.getElementById('i-f1').value?.slice(0,7)||new Date().toISOString().slice(0,7);
+  // Calcular el mes a exportar según la vista activa
+  let mes;
+  if(vista==='trabajador'){
+    mes=document.getElementById('i-m').value;
+  } else {
+    // Vista por día: usar el mes de la fecha desde
+    const f1=document.getElementById('i-f1').value;
+    mes=f1?f1.slice(0,7):new Date().toISOString().slice(0,7);
+  }
+  if(!mes) mes=new Date().toISOString().slice(0,7);
   let params=`select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&fecha=gte.${mes}-01&fecha=lte.${mes}-31&order=fecha.asc`;
-  const est=document.getElementById('s-e').value;
-  // Para Excel de nóminas cogemos todos (validados y pendientes del mes)
-  // Para Excel de obras solo los aprobados si está filtrado así
-  if(est==='aprobado') params+='&validado_jefe_obra=eq.true';
   const res=await fetch(`${SU}/rest/v1/partes?${params}`,{headers:H});
   return await res.json();
 }
@@ -744,20 +749,23 @@ async function buscarProyectos(){
     desde=`${anio}-01-01`; hasta=`${anio}-12-31`;
   }
 
-  let params=`select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&fecha=gte.${desde}&fecha=lte.${hasta}&validado_jefe_obra=eq.true`;
+  let params=`select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&fecha=gte.${desde}&fecha=lte.${hasta}&validado_jefe_obra=eq.true&order=fecha.asc`;
 
-  const res=await fetch(`${SU}/rest/v1/partes?${params}`,{headers:H});
-  let partes=await res.json();
+  try{
+    const res=await fetch(`${SU}/rest/v1/partes?${params}`,{headers:H});
+    if(!res.ok) throw new Error('Error HTTP: '+res.status);
+    let partes=await res.json();
+    if(!Array.isArray(partes)) throw new Error('Respuesta inesperada');
 
-  // Filtrar por obra si se seleccionó una
-  if(obraId && obraId!==''){
-    partes=partes.filter(p=>p.partes_obras?.some(po=>po.obra_id==obraId));
-  }
+    // Filtrar por obra si se seleccionó una
+    if(obraId && obraId!==''){
+      partes=partes.filter(p=>p.partes_obras?.some(po=>po.obra_id==obraId));
+    }
 
-  if(!partes.length){
-    document.getElementById('res-proyectos').innerHTML='<div class="tpanel"><div class="empty">📋 No hay partes aprobados para este período y filtros</div></div>';
-    return;
-  }
+    if(!partes.length){
+      document.getElementById('res-proyectos').innerHTML='<div class="tpanel"><div class="empty">📋 No hay partes aprobados para este período.<br><small style="color:#aaa">Recuerda que solo aparecen partes aprobados por el Jefe de Obra.</small></div></div>';
+      return;
+    }
 
   // Agrupar por obra
   const porObra={};
@@ -815,6 +823,11 @@ async function buscarProyectos(){
   });
 
   document.getElementById('res-proyectos').innerHTML=html;
+
+  } catch(e){
+    console.error('Error proyectos:',e);
+    document.getElementById('res-proyectos').innerHTML='<div class="tpanel"><div class="empty">⚠️ Error al cargar: '+e.message+'</div></div>';
+  }
 }
 
 // ─── EXCEL OBRAS ──────────────────────────────────────────
@@ -1000,30 +1013,30 @@ async function xlsNominas(){
 }
 
 // ─── EXCEL PROYECTOS ──────────────────────────────────────
-function xlsProyectos(){
-  const divRes=document.getElementById('res-proyectos');
-  if(!divRes.innerHTML||divRes.innerHTML.includes('spinner')){alert('Primero busca los datos');return;}
-
-  // Reconstruir datos desde la última búsqueda
-  // Reutilizamos buscarProyectos pero con exportación
+async function xlsProyectos(){
   const obraId=document.getElementById('sp-o').value;
   const periodo=document.getElementById('sp-per').value;
-  let params='select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&validado_jefe_obra=eq.true';
+  let params='select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&validado_jefe_obra=eq.true&order=fecha.asc';
 
   if(periodo==='mes'){
     const mes=document.getElementById('sp-mes').value;
+    if(!mes){alert('Selecciona un mes');return;}
     params+=`&fecha=gte.${mes}-01&fecha=lte.${mes}-31`;
   } else {
     const anio=document.getElementById('sp-anio').value;
     params+=`&fecha=gte.${anio}-01-01&fecha=lte.${anio}-12-31`;
   }
 
-  fetch(`${SU}/rest/v1/partes?${params}`,{headers:H}).then(r=>r.json()).then(partes=>{
-    let datos2=partes;
-    if(obraId&&obraId!=='') datos2=partes.filter(p=>p.partes_obras?.some(po=>po.obra_id==obraId));
+  try{
+    const res=await fetch(`${SU}/rest/v1/partes?${params}`,{headers:H});
+    if(!res.ok) throw new Error('Error HTTP');
+    let partes=await res.json();
+    if(!Array.isArray(partes)||!partes.length){alert('No hay partes aprobados para exportar');return;}
+
+    if(obraId&&obraId!=='') partes=partes.filter(p=>p.partes_obras?.some(po=>po.obra_id==obraId));
 
     const filas=[];
-    datos2.forEach(p=>{
+    partes.forEach(p=>{
       (p.partes_obras||[]).forEach(o=>{
         if(obraId&&obraId!==''&&o.obra_id!=obraId) return;
         filas.push({
@@ -1034,13 +1047,16 @@ function xlsProyectos(){
       });
     });
 
+    if(!filas.length){alert('No hay datos para exportar');return;}
     const ws=XLSX.utils.json_to_sheet(filas);
     ws['!cols']=[{wch:12},{wch:35},{wch:35},{wch:8},{wch:50}];
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'Control Proyectos');
     const label=periodo==='mes'?document.getElementById('sp-mes').value:document.getElementById('sp-anio').value;
     XLSX.writeFile(wb,'MASA_Proyectos_'+label+'.xlsx');
-  });
+  } catch(e){
+    alert('Error al exportar: '+e.message);
+  }
 }
 
 function toast(msg,ok){
