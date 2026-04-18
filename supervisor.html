@@ -433,7 +433,11 @@ async function buscar(){
   } else {
     const mes=document.getElementById('i-m').value;
     const tid=document.getElementById('s-t').value;
-    if(mes){params+=`&fecha=gte.${mes}-01&fecha=lte.${mes}-31`;}
+    if(mes){
+      const [anioM,mesM]=mes.split('-');
+      const ultM=new Date(parseInt(anioM),parseInt(mesM),0).getDate();
+      params+='&fecha=gte.'+mes+'-01&fecha=lte.'+mes+'-'+String(ultM).padStart(2,'0');
+    }
     if(tid && tid!=='') params+=`&trabajador_id=eq.${tid}`;
   }
 
@@ -465,12 +469,15 @@ async function fetchParaExcel(){
     mes=document.getElementById('i-m').value;
   } else {
     const f1=document.getElementById('i-f1').value;
-    mes=f1?f1.slice(0,7):new Date().toISOString().slice(0,7);
+    mes=f1?f1.slice(0,7):'';
   }
   if(!mes) mes=new Date().toISOString().slice(0,7);
-  const url=SU+'/rest/v1/partes?select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&fecha=gte.'+mes+'-01&fecha=lte.'+mes+'-31&order=fecha.asc';
+  const [anio,mesNum]=mes.split('-');
+  const ultimoDia=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
+  const hasta=mes+'-'+String(ultimoDia).padStart(2,'0');
+  const url=SU+'/rest/v1/partes?select=*,trabajadores(nombre),partes_obras(*,obras(nombre))&fecha=gte.'+mes+'-01&fecha=lte.'+hasta+'&order=fecha.asc';
   const res=await fetch(url,{headers:H});
-  if(!res.ok) throw new Error('HTTP '+res.status);
+  if(!res.ok){const t=await res.text();throw new Error('HTTP '+res.status+': '+t);}
   const data=await res.json();
   return Array.isArray(data)?data:[];
 }
@@ -744,7 +751,10 @@ async function buscarProyectos(){
   if(periodo==='mes'){
     const mes=document.getElementById('sp-mes').value;
     if(!mes){document.getElementById('res-proyectos').innerHTML='<div class="tpanel"><div class="empty">Selecciona un mes</div></div>';return;}
-    desde=mes+'-01'; hasta=mes+'-31';
+    const [anio,mesNum]=mes.split('-');
+    const ultimoDia=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
+    desde=mes+'-01';
+    hasta=mes+'-'+String(ultimoDia).padStart(2,'0');
   } else {
     const anio=document.getElementById('sp-anio').value;
     desde=anio+'-01-01'; hasta=anio+'-12-31';
@@ -1023,7 +1033,9 @@ async function xlsProyectos(){
   if(periodo==='mes'){
     const mes=document.getElementById('sp-mes').value;
     if(!mes){alert('Selecciona un mes');return;}
-    params+=`&fecha=gte.${mes}-01&fecha=lte.${mes}-31`;
+    const [anio,mesNum]=mes.split('-');
+    const ultimoDia=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
+    params+='&fecha=gte.'+mes+'-01&fecha=lte.'+mes+'-'+String(ultimoDia).padStart(2,'0');
   } else {
     const anio=document.getElementById('sp-anio').value;
     params+=`&fecha=gte.${anio}-01-01&fecha=lte.${anio}-12-31`;
