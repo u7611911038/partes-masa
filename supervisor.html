@@ -375,7 +375,7 @@ async function init(){
   if(spMes) spMes.value=mesActual;
 
   const[rT,rO,rF]=await Promise.all([
-    fetch(SU+'/rest/v1/trabajadores?activo=eq.true&order=nombre',{headers:H}),
+    fetch(SU+'/rest/v1/trabajadores?select=id,nombre,horas_convenio&activo=eq.true&order=nombre',{headers:H}),
     fetch(SU+'/rest/v1/obras?select=id,nombre,numero,activa&activa=eq.true&order=nombre',{headers:H}),
     fetch(SU+'/rest/v1/festivos?select=fecha',{headers:H})
   ]);
@@ -627,6 +627,8 @@ function abrirModal(id){
   const p=datos.find(x=>x.id==id);
   if(!p){toast('Parte no encontrado, recarga la búsqueda',false);return;}
 
+  const trab2=trabs.find(t=>t.id==p.trabajador_id);
+  p._convenio=trab2?.horas_convenio||11;
   document.getElementById('m-id').value=p.id;
   document.getElementById('m-tit').innerHTML='EDITAR: <span style="color:var(--rojo)">'+p.trabajadores?.nombre+'</span> — '+p.fecha;
   document.getElementById('m-turno').value=p.turno||'mañana';
@@ -662,10 +664,15 @@ function abrirModal(id){
 
 function actualizarInfoHoras(p,total){
   const esp=esFD(p.fecha);
-  const n=esp?0:Math.min(total,8);
-  const e=esp?total:Math.max(0,total-8);
+  const turnoEdit=document.getElementById('m-turno').value;
+  const convenio=p._convenio||11;
+  let totalEf=total;
+  if(turnoEdit==='noche'&&total>=12&&convenio===11) totalEf=total-1;
+  const n=esp?0:Math.min(totalEf,8);
+  const e=esp?totalEf:Math.max(0,totalEf-8);
+  const descuento=total!==totalEf?` <span style="color:var(--rojo);font-size:11px">(−1h convenio 11h → ${totalEf}h efectivas)</span>`:'';
   document.getElementById('m-info').innerHTML=
-    `Total del día: <b>${total}h</b> → <span style="color:var(--verde)">${n}h normales</span> + <span style="color:var(--amarillo)">${e}h extra</span>${esp?' <b style="color:var(--rojo)">(fin semana/festivo)</b>':''}`;
+    `Total apuntado: <b>${total}h</b>${descuento} → <span style="color:var(--verde)">${n}h normales</span> + <span style="color:var(--amarillo)">${e}h extra</span>${esp?' <b style="color:var(--rojo)">(fin semana/festivo)</b>':''}`;
 }
 
 function recalcModal(pid){
@@ -699,8 +706,13 @@ async function guardar(){
   });
 
   const esp=esFD(p.fecha);
-  const hn=esp?0:Math.min(total,8);
-  const he=(esp?total:Math.max(0,total-8))+(lm*2);
+  const turnoEdit=document.getElementById('m-turno').value;
+  // Aplicar descuento 1h convenio 11h si turno noche y ≥12h
+  const convenioTrab=p._convenio||11;
+  let totalEfectivo=total;
+  if(turnoEdit==='noche' && total>=12 && convenioTrab===11) totalEfectivo=total-1;
+  const hn=esp?0:Math.min(totalEfectivo,8);
+  const he=(esp?totalEfectivo:Math.max(0,totalEfectivo-8))+(lm*2);
 
   const pN=document.querySelector('[data-p="nocturnidad"]').classList.contains('on');
   const pT=document.querySelector('[data-p="turnicidad"]').classList.contains('on');
