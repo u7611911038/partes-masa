@@ -710,6 +710,29 @@
 
   .aviso-dia.visible { display: block; }
 
+  /* PANTALLA PIN */
+  #pantalla-pin {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    text-align: center;
+    gap: 14px;
+    padding: 24px;
+  }
+  .pin-nombre { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; color: var(--blanco); margin-bottom: 4px; }
+  .pin-subtitulo { color: var(--gris-texto); font-size: 14px; margin-bottom: 8px; }
+  .pin-input { width: 220px; background: var(--gris-panel); border: 2px solid var(--gris-borde); border-radius: 8px; padding: 16px; font-size: 28px; text-align: center; letter-spacing: 8px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; outline: none; color: var(--blanco); transition: border-color 0.2s; }
+  .pin-input:focus { border-color: var(--rojo); }
+  .pin-input.error { border-color: var(--rojo); animation: pinshake 0.3s; }
+  @keyframes pinshake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+  .pin-error { color: var(--rojo); font-size: 13px; font-weight: 600; display: none; }
+  .btn-pin { background: var(--rojo); color: white; border: none; border-radius: 8px; padding: 14px 40px; font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 2px; cursor: pointer; transition: background 0.2s; }
+  .btn-pin:hover { background: var(--rojo-oscuro); }
+  .btn-volver-pin { background: transparent; border: 1px solid var(--gris-borde); border-radius: 6px; padding: 8px 20px; font-size: 13px; color: var(--gris-texto); cursor: pointer; font-family: 'Barlow', sans-serif; }
+  .btn-volver-pin:hover { border-color: var(--rojo); color: var(--rojo); }
+
   /* SCROLLBAR */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--gris-oscuro); }
@@ -747,6 +770,18 @@
     <div class="geo-subtitulo" id="geo-subtitulo">Necesitamos confirmar que estás en las instalaciones para registrar el parte.</div>
     <div class="geo-estado geo-cargando" id="geo-estado">🔍 Obteniendo tu ubicación...</div>
     <button class="btn-geo" id="btn-geo" onclick="verificarGeo()" style="display:none">REINTENTAR</button>
+  </div>
+
+  <!-- PANTALLA PIN -->
+  <div id="pantalla-pin">
+    <div class="titulo-inicio">INTRODUCE<br><span>TU PIN</span></div>
+    <div class="pin-nombre" id="pin-nombre-display"></div>
+    <div class="pin-subtitulo">Introduce los 8 dígitos de tu DNI (sin letra)</div>
+    <input type="password" inputmode="numeric" class="pin-input" id="pin-input" maxlength="8" placeholder="••••••••"
+      onkeydown="if(event.key==='Enter') verificarPin()" />
+    <div class="pin-error" id="pin-error">PIN incorrecto. Inténtalo de nuevo.</div>
+    <button class="btn-pin" onclick="verificarPin()">ENTRAR</button>
+    <button class="btn-volver-pin" onclick="volverABusqueda()">← Volver</button>
   </div>
 
   <!-- PANTALLA INICIO -->
@@ -1003,7 +1038,7 @@ const fechaHoy = hoy.toISOString().split('T')[0];
 async function cargarDatos() {
   try {
     const [rTrab, rObras, rFest] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/trabajadores?activo=eq.true&order=nombre`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/trabajadores?select=id,nombre,pin,horas_convenio&activo=eq.true&order=nombre`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/obras?select=id,nombre,numero,activa&activa=eq.true&order=nombre`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/festivos?select=fecha`, { headers })
     ]);
@@ -1035,8 +1070,43 @@ function seleccionarTrabajador(id, nombre) {
   trabajadorSeleccionado = { id, nombre };
   document.getElementById('lista-trabajadores').classList.remove('visible');
   document.getElementById('buscar-trabajador').value = '';
-  document.getElementById('nombre-display').textContent = nombre;
+  // Mostrar pantalla PIN
+  document.getElementById('pin-nombre-display').textContent = nombre;
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-error').style.display = 'none';
   document.getElementById('pantalla-inicio').style.display = 'none';
+  document.getElementById('pantalla-pin').style.display = 'flex';
+  setTimeout(() => document.getElementById('pin-input').focus(), 100);
+}
+
+function volverABusqueda() {
+  trabajadorSeleccionado = null;
+  document.getElementById('pantalla-pin').style.display = 'none';
+  document.getElementById('pantalla-inicio').style.display = 'flex';
+}
+
+function verificarPin() {
+  const pinIntroducido = document.getElementById('pin-input').value.trim();
+  const trab = trabajadores.find(t => t.id === trabajadorSeleccionado.id);
+  if (!trab || !trab.pin) {
+    // Sin PIN configurado → acceso directo (trabajadores sin DNI aún)
+    accederFormulario();
+    return;
+  }
+  if (pinIntroducido === trab.pin) {
+    accederFormulario();
+  } else {
+    const inp = document.getElementById('pin-input');
+    inp.classList.add('error');
+    document.getElementById('pin-error').style.display = 'block';
+    inp.value = '';
+    setTimeout(() => { inp.classList.remove('error'); inp.focus(); }, 400);
+  }
+}
+
+function accederFormulario() {
+  document.getElementById('pantalla-pin').style.display = 'none';
+  document.getElementById('nombre-display').textContent = trabajadorSeleccionado.nombre;
   document.getElementById('pantalla-formulario').style.display = 'block';
   resetFormulario();
   mostrarAvisoDia();
@@ -1044,6 +1114,7 @@ function seleccionarTrabajador(id, nombre) {
 
 function volverInicio() {
   trabajadorSeleccionado = null;
+  document.getElementById('pantalla-pin').style.display = 'none';
   document.getElementById('pantalla-inicio').style.display = 'flex';
   document.getElementById('pantalla-formulario').style.display = 'none';
 }
@@ -1212,8 +1283,16 @@ async function enviarParte() {
     totalHoras += parseFloat(document.getElementById(`obra-horas-${id}`).value) || 0;
   });
 
-  let horasNormales = esDiaEspecial ? 0 : Math.min(totalHoras, 8);
-  let horasExtra = esDiaEspecial ? totalHoras : Math.max(0, totalHoras - 8);
+  // Aplicar descuento de 1h por convenio (11h) si el turno es de noche y ≥12h apuntadas
+  const trab = trabajadores.find(t => t.id === trabajadorSeleccionado.id);
+  const convenio = trab?.horas_convenio || 11;
+  let totalHorasEfectivas = totalHoras;
+  if (turnoSeleccionado === 'noche' && totalHoras >= 12 && convenio === 11) {
+    totalHorasEfectivas = totalHoras - 1; // descuento hora comida
+  }
+
+  let horasNormales = esDiaEspecial ? 0 : Math.min(totalHorasEfectivas, 8);
+  let horasExtra = esDiaEspecial ? totalHorasEfectivas : Math.max(0, totalHorasEfectivas - 8);
   horasExtra += llamadas * 2;
 
   const btn = document.getElementById('btn-enviar');
