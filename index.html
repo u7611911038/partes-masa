@@ -1284,11 +1284,11 @@ async function enviarParte() {
     totalHoras += parseFloat(document.getElementById(`obra-horas-${id}`).value) || 0;
   });
 
-  // Aplicar descuento de 1h por convenio (11h) si el turno es de noche y ≥12h apuntadas
+  // Aplicar descuento de 1h por convenio (11h) si ≥12h apuntadas (hora de comida)
   const trab = trabajadores.find(t => t.id === trabajadorSeleccionado.id);
   const convenio = trab?.horas_convenio || 11;
   let totalHorasEfectivas = totalHoras;
-  if (turnoSeleccionado === 'noche' && totalHoras >= 12 && convenio === 11) {
+  if (totalHoras >= 12 && convenio === 11) {
     totalHorasEfectivas = totalHoras - 1; // descuento hora comida
   }
 
