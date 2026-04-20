@@ -665,10 +665,9 @@ function abrirModal(id){
 
 function actualizarInfoHoras(p,total){
   const esp=esFD(p.fecha);
-  const turnoEdit=document.getElementById('m-turno').value;
   const convenio=p._convenio||11;
   let totalEf=total;
-  if(turnoEdit==='noche'&&total>=12&&convenio===11) totalEf=total-1;
+  if(total>=12&&convenio===11) totalEf=total-1;
   const n=esp?0:Math.min(totalEf,8);
   const e=esp?totalEf:Math.max(0,totalEf-8);
   const descuento=total!==totalEf?` <span style="color:var(--rojo);font-size:11px">(−1h convenio 11h → ${totalEf}h efectivas)</span>`:'';
@@ -707,11 +706,10 @@ async function guardar(){
   });
 
   const esp=esFD(p.fecha);
-  const turnoEdit=document.getElementById('m-turno').value;
-  // Aplicar descuento 1h convenio 11h si turno noche y ≥12h
+  // Aplicar descuento 1h convenio 11h si ≥12h apuntadas
   const convenioTrab=p._convenio||11;
   let totalEfectivo=total;
-  if(turnoEdit==='noche' && total>=12 && convenioTrab===11) totalEfectivo=total-1;
+  if(total>=12 && convenioTrab===11) totalEfectivo=total-1;
   const hn=esp?0:Math.min(totalEfectivo,8);
   const he=(esp?totalEfectivo:Math.max(0,totalEfectivo-8))+(lm*2);
 
