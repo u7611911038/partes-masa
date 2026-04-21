@@ -6,6 +6,7 @@
 <title>MASA — Panel Control</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <style>
   :root {
     --rojo:#e2001a; --rojo-o:#b50015; --fondo:#f2f2f2; --panel:#fff;
@@ -891,45 +892,112 @@ async function xlsNominas(){
   let partes;
   try{ partes=await fetchParaExcel(); } catch(e){ alert('Error al obtener datos: '+e.message); return; }
   if(!partes.length){alert('No hay datos para exportar en este período');return;}
-  const wb=XLSX.utils.book_new();
-  const grupos={};
-  partes.forEach(p=>{const n=p.trabajadores?.nombre||'?';if(!grupos[n])grupos[n]=[];grupos[n].push(p);});
 
-  // Hoja RESUMEN
-  const resumen=[];
-  Object.entries(grupos).sort().forEach(([n,pts])=>{
-    resumen.push({
-      'Trabajador':n,'Días':pts.length,
-      'H. Normales':pts.reduce((s,p)=>s+(p.horas_normales||0),0).toFixed(1),
-      'H. Extra':pts.reduce((s,p)=>s+(p.horas_extra||0),0).toFixed(1),
-      'Nocturnidad':pts.filter(p=>p.plus_nocturnidad).length,
-      'Turnicidad':pts.filter(p=>p.plus_turnicidad).length,
-      'Entrada Complejo':pts.filter(p=>p.plus_entrada).length,
-      'Plus Taller':pts.filter(p=>p.plus_taller).length,
-      'R.Diario':pts.filter(p=>p.reten==='diario').length,
-      'R.Fin Semana':pts.filter(p=>p.reten==='fin_de_semana').length,
-      'R.Festivo':pts.filter(p=>p.reten==='festivo').length,
-      'R.Semanal':pts.filter(p=>p.reten==='semanal').length,
-      'Llamadas':pts.reduce((s,p)=>s+(p.llamadas||0),0)
-    });
-  });
-  const wsRes=XLSX.utils.json_to_sheet(resumen);
-  wsRes['!cols']=[{wch:35},{wch:6},{wch:12},{wch:10},{wch:12},{wch:12},{wch:16},{wch:12},{wch:10},{wch:14},{wch:12},{wch:12},{wch:10}];
-  XLSX.utils.book_append_sheet(wb,wsRes,'RESUMEN');
-
-  // Una hoja por trabajador — formato Hoja de Horas MASA
   const mes=document.getElementById('i-m').value||document.getElementById('i-f1').value?.slice(0,7)||new Date().toISOString().slice(0,7);
   const [anio,mesNum]=mes.split('-');
   const diasDelMes=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
+  const mesNombre=new Date(parseInt(anio),parseInt(mesNum)-1,1).toLocaleString('es-ES',{month:'long'}).toUpperCase();
 
+  const grupos={};
+  partes.forEach(p=>{const n=p.trabajadores?.nombre||'?';if(!grupos[n])grupos[n]=[];grupos[n].push(p);});
+
+  const wb=new ExcelJS.Workbook();
+  wb.creator='MASA Sistema Partes';
+  wb.created=new Date();
+
+  // ─── COLORES ────────────────────────────────────────────
+  const ROJO='E2001A', ROJO_CLARO='FDECEA', GRIS='F2F2F2', GRIS_MED='D9D9D9';
+  const AZUL_CLARO='EAF4FB', VERDE_CLARO='EAFAF1', AMARILLO_CLARO='FEF9EE';
+  const DARK='1A1A1A', BLANCO='FFFFFF';
+
+  const borde = {
+    top:{style:'thin',color:{argb:'FF'+GRIS_MED}},
+    left:{style:'thin',color:{argb:'FF'+GRIS_MED}},
+    bottom:{style:'thin',color:{argb:'FF'+GRIS_MED}},
+    right:{style:'thin',color:{argb:'FF'+GRIS_MED}}
+  };
+  const bordeRojo = {
+    top:{style:'medium',color:{argb:'FF'+ROJO}},
+    left:{style:'medium',color:{argb:'FF'+ROJO}},
+    bottom:{style:'medium',color:{argb:'FF'+ROJO}},
+    right:{style:'medium',color:{argb:'FF'+ROJO}}
+  };
+  const bordeBottom = (color='FF'+GRIS_MED, grosor='thin') => ({
+    bottom:{style:grosor,color:{argb:color}}
+  });
+
+  function celda(ws, fila, col, valor, opts={}){
+    const c=ws.getCell(fila,col);
+    c.value=valor;
+    if(opts.bold) c.font={...(c.font||{}), bold:true, name:'Arial', size:opts.size||9, color:{argb:'FF'+(opts.color||DARK)}};
+    else c.font={name:'Arial', size:opts.size||9, color:{argb:'FF'+(opts.color||DARK)}};
+    if(opts.bg) c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+opts.bg}};
+    if(opts.align) c.alignment={horizontal:opts.align, vertical:'middle', wrapText:false};
+    else c.alignment={horizontal:'center', vertical:'middle'};
+    if(opts.border) c.border=opts.border;
+    else if(opts.borde!==false) c.border=borde;
+    return c;
+  }
+
+  // ─── HOJA RESUMEN ───────────────────────────────────────
+  const wsRes=wb.addWorksheet('RESUMEN');
+  wsRes.views=[{showGridLines:false}];
+
+  // Cabecera RESUMEN
+  wsRes.mergeCells(1,1,1,13);
+  const titRes=wsRes.getCell(1,1);
+  titRes.value='MASA — RESUMEN DE NÓMINAS  |  '+mesNombre+' '+anio;
+  titRes.font={bold:true,name:'Arial',size:12,color:{argb:'FF'+BLANCO}};
+  titRes.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+ROJO}};
+  titRes.alignment={horizontal:'center',vertical:'middle'};
+  wsRes.getRow(1).height=24;
+
+  const cabecerasRes=['Trabajador','Días','H. Normales','H. Extra','Nocturnidad','Turnicidad','Entrada Complejo','Plus Taller','Retén Diario','Retén Fin Sem','Retén Festivo','Retén Semanal','Llamadas'];
+  cabecerasRes.forEach((h,i)=>{
+    const c=wsRes.getCell(2,i+1);
+    c.value=h; c.font={bold:true,name:'Arial',size:9,color:{argb:'FF'+BLANCO}};
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF444444'}};
+    c.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    c.border=borde;
+  });
+  wsRes.getRow(2).height=28;
+
+  Object.entries(grupos).sort().forEach(([n,pts],idx)=>{
+    const fila=idx+3;
+    const bg=idx%2===0?BLANCO:GRIS;
+    const vals=[
+      n,pts.length,
+      pts.reduce((s,p)=>s+(p.horas_normales||0),0).toFixed(1),
+      pts.reduce((s,p)=>s+(p.horas_extra||0),0).toFixed(1),
+      pts.filter(p=>p.plus_nocturnidad).length,
+      pts.filter(p=>p.plus_turnicidad).length,
+      pts.filter(p=>p.plus_entrada).length,
+      pts.filter(p=>p.plus_taller).length,
+      pts.filter(p=>p.reten==='diario').length,
+      pts.filter(p=>p.reten==='fin_de_semana').length,
+      pts.filter(p=>p.reten==='festivo').length,
+      pts.filter(p=>p.reten==='semanal').length,
+      pts.reduce((s,p)=>s+(p.llamadas||0),0)
+    ];
+    vals.forEach((v,i)=>{
+      const c=wsRes.getCell(fila,i+1);
+      c.value=v; c.font={name:'Arial',size:9,bold:i===0};
+      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};
+      c.alignment={horizontal:i===0?'left':'center',vertical:'middle'};
+      c.border=borde;
+    });
+  });
+
+  wsRes.columns=[
+    {width:36},{width:7},{width:11},{width:9},{width:12},{width:12},{width:16},{width:12},{width:12},{width:14},{width:13},{width:14},{width:10}
+  ];
+
+  // ─── UNA HOJA POR TRABAJADOR ────────────────────────────
   Object.entries(grupos).sort().forEach(([nombre,pts])=>{
     const ptsOrdenados=pts.sort((a,b)=>a.fecha>b.fecha?1:-1);
-
-    // Mapas por fecha
     const porFecha={};
     ptsOrdenados.forEach(p=>{porFecha[p.fecha]=p;});
 
-    // Obtener todas las obras usadas por este trabajador
     const obrasUsadas=new Map();
     ptsOrdenados.forEach(p=>{
       (p.partes_obras||[]).forEach(o=>{
@@ -937,99 +1005,198 @@ async function xlsNominas(){
       });
     });
 
-    // Cabecera: nombre, mes, año
-    const filas=[];
+    const ws=wb.addWorksheet(nombre.substring(0,31));
+    ws.views=[{showGridLines:false}];
 
-    // Fila cabecera trabajador
-    filas.push({'APELLIDOS Y NOMBRE':nombre,'MES':new Date(parseInt(anio),parseInt(mesNum)-1,1).toLocaleString('es-ES',{month:'long'}).toUpperCase(),'AÑO':anio});
-    filas.push({}); // línea en blanco
+    // Columnas: col1=proyecto(A), col2=totales(B), col3..N=días, colN+1=Reg
+    // Col índices: 1=Proyecto, 2=TOTALES, 3..3+diasDelMes-1=días, última=Reg
+    const COL_PROY=1, COL_TOT=2, COL_REG=2+diasDelMes+1;
 
-    // Fila de días (cabecera)
-    const cabDias={'B.O. - PROYECTO':'','TOTALES':''};
-    for(let d=1;d<=diasDelMes;d++) cabDias[String(d)]='';
-    cabDias['Reg.']='';
-    filas.push(cabDias);
+    // ── FILA 1: Cabecera nombre trabajador ──────────────────
+    const totalCols=COL_REG;
+    ws.mergeCells(1,1,1,totalCols);
+    const cNombre=ws.getCell(1,1);
+    cNombre.value='HOJA DE HORAS  —  '+nombre;
+    cNombre.font={bold:true,name:'Arial',size:11,color:{argb:'FF'+BLANCO}};
+    cNombre.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+ROJO}};
+    cNombre.alignment={horizontal:'center',vertical:'middle'};
+    ws.getRow(1).height=20;
 
-    // Una fila por obra
+    // ── FILA 2: Mes y año ────────────────────────────────────
+    ws.mergeCells(2,1,2,totalCols);
+    const cMes=ws.getCell(2,1);
+    cMes.value=mesNombre+' '+anio;
+    cMes.font={bold:true,name:'Arial',size:10,color:{argb:'FF'+ROJO}};
+    cMes.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+ROJO_CLARO}};
+    cMes.alignment={horizontal:'center',vertical:'middle'};
+    ws.getRow(2).height=16;
+
+    // ── FILA 3: Cabecera días ────────────────────────────────
+    celda(ws,3,COL_PROY,'B.O. — PROYECTO',{bold:true,bg:'333333',color:BLANCO,align:'left',border:borde});
+    celda(ws,3,COL_TOT,'TOTALES',{bold:true,bg:'333333',color:BLANCO,border:borde});
+    for(let d=1;d<=diasDelMes;d++){
+      const fecha=`${anio}-${mesNum}-${String(d).padStart(2,'0')}`;
+      const diaSem=new Date(fecha+'T12:00:00').getDay();
+      const esFin=diaSem===0||diaSem===6;
+      const esFest=festivos.includes(fecha);
+      const bg=esFin||esFest?'FFCCCC':GRIS;
+      celda(ws,3,COL_TOT-1+d,d,{bold:true,bg,border:borde,size:8});
+    }
+    celda(ws,3,COL_REG,'Reg.',{bold:true,bg:'333333',color:BLANCO,border:borde});
+    ws.getRow(3).height=18;
+
+    // ── FILAS OBRAS ──────────────────────────────────────────
+    let filaActual=4;
     obrasUsadas.forEach((obraNombre,obraId)=>{
-      const fila={'B.O. - PROYECTO':obraNombre,'TOTALES':0};
       let total=0,reg=0;
+      celda(ws,filaActual,COL_PROY,obraNombre,{bold:false,bg:BLANCO,align:'left',border:borde});
       for(let d=1;d<=diasDelMes;d++){
         const fecha=`${anio}-${mesNum}-${String(d).padStart(2,'0')}`;
         const parte=porFecha[fecha];
         const obraDelDia=parte?.partes_obras?.find(o=>o.obra_id==obraId);
-        const h=obraDelDia?.horas||'';
-        fila[String(d)]=h||'';
+        const h=obraDelDia?.horas||null;
+        const diaSem=new Date(fecha+'T12:00:00').getDay();
+        const esFin=diaSem===0||diaSem===6;
+        const esFest=festivos.includes(fecha);
+        const bg=esFin||esFest?(h?'FFAAAA':'FFCCCC'):(h?AZUL_CLARO:BLANCO);
+        const c=ws.getCell(filaActual,COL_TOT-1+d);
+        c.value=h||null; c.font={name:'Arial',size:8,bold:!!h};
+        c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};
+        c.alignment={horizontal:'center',vertical:'middle'};
+        c.border=borde;
         if(h) total+=h;
-        // Calcular si es h.extra (simplificado: si es finde/festivo o >8h acumuladas ese día)
-        if(h && esFD(fecha)) reg+=h;
+        if(h&&(esFin||esFest)) reg+=h;
       }
-      fila['TOTALES']=total||'';
-      fila['Reg.']=reg||'';
-      filas.push(fila);
+      celda(ws,filaActual,COL_TOT,total||null,{bold:true,bg:AZUL_CLARO,border:borde});
+      celda(ws,filaActual,COL_REG,reg||null,{bold:true,bg:ROJO_CLARO,color:reg?ROJO:DARK,border:borde});
+      filaActual++;
     });
 
-    // Fila HORAS TOTALES
-    const filaTotal={'B.O. - PROYECTO':'HORAS TOTALES','TOTALES':0};
+    // ── FILA HORAS TOTALES ───────────────────────────────────
+    celda(ws,filaActual,COL_PROY,'HORAS TOTALES',{bold:true,bg:'333333',color:BLANCO,align:'left',border:borde});
     let gtotal=0;
     for(let d=1;d<=diasDelMes;d++){
       const fecha=`${anio}-${mesNum}-${String(d).padStart(2,'0')}`;
       const parte=porFecha[fecha];
       const th=(parte?.partes_obras||[]).reduce((s,o)=>s+(o.horas||0),0);
-      filaTotal[String(d)]=th||'';
+      const diaSem=new Date(fecha+'T12:00:00').getDay();
+      const esFin=diaSem===0||diaSem===6;
+      const bg=esFin||festivos.includes(fecha)?'FFCCCC':GRIS;
+      const c=ws.getCell(filaActual,COL_TOT-1+d);
+      c.value=th||null; c.font={name:'Arial',size:8,bold:true,color:{argb:'FF'+(th?ROJO:DARK)}};
+      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};
+      c.alignment={horizontal:'center',vertical:'middle'};
+      c.border=borde;
       gtotal+=th;
     }
-    filaTotal['TOTALES']=gtotal;
-    filas.push(filaTotal);
-    filas.push({});
+    celda(ws,filaActual,COL_TOT,gtotal,{bold:true,bg:ROJO,color:BLANCO,border:{top:{style:'medium',color:{argb:'FF'+ROJO}},bottom:{style:'medium',color:{argb:'FF'+ROJO}},left:{style:'medium',color:{argb:'FF'+ROJO}},right:{style:'medium',color:{argb:'FF'+ROJO}}}});
+    celda(ws,filaActual,COL_REG,'',{bg:GRIS,border:borde});
+    ws.getRow(filaActual).height=16;
+    filaActual+=2;
 
-    // Sección pluses
-    filas.push({'B.O. - PROYECTO':'NORMALES','TOTALES':ptsOrdenados.reduce((s,p)=>s+(p.horas_normales||0),0)});
-    filas.push({'B.O. - PROYECTO':'H.E. 1ª','TOTALES':ptsOrdenados.reduce((s,p)=>Math.max(0,s+(p.horas_extra||0)),0)});
-    filas.push({});
+    // ── SECCIÓN HORAS NORMALES / EXTRA ───────────────────────
+    const tNorm=ptsOrdenados.reduce((s,p)=>s+(p.horas_normales||0),0);
+    const tExtra=ptsOrdenados.reduce((s,p)=>s+(p.horas_extra||0),0);
 
-    // Sección retenes y pluses por día
-    const rFila={'B.O. - PROYECTO':'RETENES (L-F-FS-S)','TOTALES':''};
-    const entFila={'B.O. - PROYECTO':'ENTRADA COMPLEJO','TOTALES':''};
-    const tallFila={'B.O. - PROYECTO':'PLUS TALLER','TOTALES':''};
-    const nocFila={'B.O. - PROYECTO':'TURNICIDAD-NOCTURNIDAD','TOTALES':''};
-    const llFila={'B.O. - PROYECTO':'LLAMADAS','TOTALES':ptsOrdenados.reduce((s,p)=>s+(p.llamadas||0),0)};
+    ws.mergeCells(filaActual,1,filaActual,totalCols-2);
+    celda(ws,filaActual,COL_PROY,'NORMALES',{bold:true,bg:VERDE_CLARO,align:'left',border:borde});
+    celda(ws,filaActual,COL_TOT,tNorm,{bold:true,bg:VERDE_CLARO,color:'27AE60',border:borde});
+    ws.getRow(filaActual).height=14; filaActual++;
 
-    for(let d=1;d<=diasDelMes;d++){
-      const fecha=`${anio}-${mesNum}-${String(d).padStart(2,'0')}`;
-      const p=porFecha[fecha];
-      rFila[String(d)]=p&&p.reten!=='ninguno'?p.reten.charAt(0).toUpperCase():'';
-      entFila[String(d)]=p&&p.plus_entrada?'1':'';
-      tallFila[String(d)]=p&&p.plus_taller?'1':'';
-      nocFila[String(d)]=p&&(p.plus_nocturnidad||p.plus_turnicidad)?'1':'';
-    }
-    filas.push(rFila);filas.push(entFila);filas.push(tallFila);filas.push(nocFila);filas.push(llFila);
-    filas.push({});
+    ws.mergeCells(filaActual,1,filaActual,totalCols-2);
+    celda(ws,filaActual,COL_PROY,'H.E. 1ª',{bold:true,bg:AMARILLO_CLARO,align:'left',border:borde});
+    celda(ws,filaActual,COL_TOT,tExtra,{bold:true,bg:AMARILLO_CLARO,color:'E67E22',border:borde});
+    ws.getRow(filaActual).height=14; filaActual+=2;
 
-    // Resumen final
-    filas.push({'B.O. - PROYECTO':'DIAS TRABAJO','TOTALES':ptsOrdenados.length});
-    filas.push({'B.O. - PROYECTO':'RETEN DIARIO','TOTALES':ptsOrdenados.filter(p=>p.reten==='diario').length});
-    filas.push({'B.O. - PROYECTO':'RETEN FESTIVO','TOTALES':ptsOrdenados.filter(p=>p.reten==='festivo').length});
-    filas.push({'B.O. - PROYECTO':'RETEN FIN SEMANA','TOTALES':ptsOrdenados.filter(p=>p.reten==='fin_de_semana').length});
-    filas.push({'B.O. - PROYECTO':'RETEN SEMANAL','TOTALES':ptsOrdenados.filter(p=>p.reten==='semanal').length});
-    filas.push({'B.O. - PROYECTO':'Nº DE LLAMADAS','TOTALES':ptsOrdenados.reduce((s,p)=>s+(p.llamadas||0),0)});
-    filas.push({'B.O. - PROYECTO':'ENTRADA COMPLEJO','TOTALES':ptsOrdenados.filter(p=>p.plus_entrada).length+' días'});
-    filas.push({'B.O. - PROYECTO':'PLUS TALLER','TOTALES':ptsOrdenados.filter(p=>p.plus_taller).length+' días'});
-    filas.push({'B.O. - PROYECTO':'NOCTURNIDAD','TOTALES':ptsOrdenados.filter(p=>p.plus_nocturnidad).length+' días'});
-    filas.push({'B.O. - PROYECTO':'TURNICIDAD','TOTALES':ptsOrdenados.filter(p=>p.plus_turnicidad).length+' días'});
+    // ── SECCIÓN PLUSES POR DÍA ───────────────────────────────
+    const seccionesPlus=[
+      {label:'RETENES (L-D-FS-F)', fn:(p)=>p.reten&&p.reten!=='ninguno'?p.reten.charAt(0).toUpperCase():'', bg:AZUL_CLARO},
+      {label:'ENTRADA COMPLEJO',   fn:(p)=>p.plus_entrada?'1':'',  bg:AMARILLO_CLARO},
+      {label:'PLUS TALLER',        fn:(p)=>p.plus_taller?'1':'',   bg:AMARILLO_CLARO},
+      {label:'NOCTURNIDAD',        fn:(p)=>p.plus_nocturnidad?'1':'', bg:GRIS},
+      {label:'TURNICIDAD',         fn:(p)=>p.plus_turnicidad?'1':'',  bg:GRIS},
+    ];
 
-    const ws=XLSX.utils.json_to_sheet(filas);
+    seccionesPlus.forEach(sec=>{
+      celda(ws,filaActual,COL_PROY,sec.label,{bold:true,bg:sec.bg,align:'left',border:borde});
+      celda(ws,filaActual,COL_TOT,'',{bg:sec.bg,border:borde});
+      for(let d=1;d<=diasDelMes;d++){
+        const fecha=`${anio}-${mesNum}-${String(d).padStart(2,'0')}`;
+        const p=porFecha[fecha];
+        const val=p?sec.fn(p):'';
+        const c=ws.getCell(filaActual,COL_TOT-1+d);
+        c.value=val||null;
+        c.font={name:'Arial',size:8,bold:!!val,color:{argb:'FF'+ROJO}};
+        c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+sec.bg}};
+        c.alignment={horizontal:'center',vertical:'middle'};
+        c.border=borde;
+      }
+      celda(ws,filaActual,COL_REG,'',{bg:sec.bg,border:borde});
+      filaActual++;
+    });
 
-    // Anchos de columna: primera amplia, totales, luego una por día
-    const cols=[{wch:30},{wch:8}];
-    for(let d=0;d<diasDelMes;d++) cols.push({wch:5});
-    cols.push({wch:6});
-    ws['!cols']=cols;
+    filaActual++;
 
-    XLSX.utils.book_append_sheet(wb,ws,nombre.substring(0,31));
+    // ── RESUMEN FINAL (tabla derecha) ────────────────────────
+    const resumenItems=[
+      ['DÍAS TRABAJO', ptsOrdenados.length, BLANCO],
+      ['Nº LLAMADAS', ptsOrdenados.reduce((s,p)=>s+(p.llamadas||0),0), BLANCO],
+      ['RETÉN DIARIO', ptsOrdenados.filter(p=>p.reten==='diario').length, AZUL_CLARO],
+      ['RETÉN FIN SEMANA', ptsOrdenados.filter(p=>p.reten==='fin_de_semana').length, AZUL_CLARO],
+      ['RETÉN FESTIVO', ptsOrdenados.filter(p=>p.reten==='festivo').length, AZUL_CLARO],
+      ['RETÉN SEMANAL', ptsOrdenados.filter(p=>p.reten==='semanal').length, AZUL_CLARO],
+      ['ENTRADA COMPLEJO', ptsOrdenados.filter(p=>p.plus_entrada).length+' días', AMARILLO_CLARO],
+      ['PLUS TALLER', ptsOrdenados.filter(p=>p.plus_taller).length+' días', AMARILLO_CLARO],
+      ['NOCTURNIDAD', ptsOrdenados.filter(p=>p.plus_nocturnidad).length+' días', GRIS],
+      ['TURNICIDAD', ptsOrdenados.filter(p=>p.plus_turnicidad).length+' días', GRIS],
+    ];
+
+    // Título resumen
+    ws.mergeCells(filaActual,1,filaActual,totalCols);
+    const cTitRes=ws.getCell(filaActual,1);
+    cTitRes.value='RESUMEN DEL MES'; cTitRes.font={bold:true,name:'Arial',size:9,color:{argb:'FF'+BLANCO}};
+    cTitRes.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF333333'}};
+    cTitRes.alignment={horizontal:'center',vertical:'middle'};
+    ws.getRow(filaActual).height=16; filaActual++;
+
+    resumenItems.forEach(([label,val,bg])=>{
+      ws.mergeCells(filaActual,1,filaActual,totalCols-2);
+      celda(ws,filaActual,1,label,{bold:true,bg,align:'left',border:borde});
+      celda(ws,filaActual,COL_TOT,val,{bold:true,bg,color:ROJO,border:borde});
+      ws.getRow(filaActual).height=14; filaActual++;
+    });
+
+    // ── FIRMA ────────────────────────────────────────────────
+    filaActual++;
+    ws.mergeCells(filaActual,1,filaActual,Math.floor(totalCols/2));
+    const cFirmaJ=ws.getCell(filaActual,1);
+    cFirmaJ.value='Vº Bº JEFE DE OBRA';
+    cFirmaJ.font={bold:true,name:'Arial',size:9,color:{argb:'FF'+DARK}};
+    cFirmaJ.border={bottom:{style:'medium',color:{argb:'FF'+DARK}}};
+    cFirmaJ.alignment={horizontal:'center'};
+
+    const col2Firma=Math.floor(totalCols/2)+1;
+    ws.mergeCells(filaActual,col2Firma,filaActual,totalCols);
+    const cFirmaT=ws.getCell(filaActual,col2Firma);
+    cFirmaT.value='OPERARIO / A';
+    cFirmaT.font={bold:true,name:'Arial',size:9,color:{argb:'FF'+DARK}};
+    cFirmaT.border={bottom:{style:'medium',color:{argb:'FF'+DARK}}};
+    cFirmaT.alignment={horizontal:'center'};
+
+    // ── ANCHOS DE COLUMNA ────────────────────────────────────
+    ws.getColumn(COL_PROY).width=32;
+    ws.getColumn(COL_TOT).width=8;
+    for(let d=1;d<=diasDelMes;d++) ws.getColumn(COL_TOT-1+d).width=4.5;
+    ws.getColumn(COL_REG).width=6;
   });
 
-  XLSX.writeFile(wb,'MASA_Nominas_'+mes+'.xlsx');
+  // ── GUARDAR ──────────────────────────────────────────────
+  const buffer=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='MASA_Nominas_'+mes+'.xlsx'; a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ─── EXCEL PROYECTOS ──────────────────────────────────────
