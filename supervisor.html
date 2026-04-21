@@ -227,6 +227,7 @@
           <button class="btn brojo" onclick="buscar()">BUSCAR</button>
           <button class="btn bverde" onclick="xlsObras()">⬇ OBRAS</button>
           <button class="btn bazul" onclick="xlsNominas()">⬇ NÓMINAS</button>
+          <button class="btn" style="background:#8e44ad;color:white" onclick="abrirParteManual()" id="btn-parte-manual">+ PARTE MANUAL</button>
         </div>
       </div>
       <div id="resultados"></div>
@@ -258,6 +259,67 @@
       <div id="res-proyectos"></div>
     </div>
 
+  </div>
+</div>
+
+<!-- MODAL PARTE MANUAL -->
+<div class="modal" id="modal-manual">
+  <div class="mc">
+    <div class="mh">
+      <div class="mt" style="color:#8e44ad">+ PARTE MANUAL — DESCANSO / SALIENTE</div>
+      <button class="bx" onclick="cerrarParteManual()">×</button>
+    </div>
+    <div style="background:#f8f0ff;border:1px solid #d7bde2;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#6c3483">
+      ℹ️ Usa este formulario para registrar partes de <b>días de descanso por acumulación de jornada</b> o <b>salientes de noche</b>. Solo disponible desde las instalaciones.
+    </div>
+    <div class="g2">
+      <div>
+        <label class="cl2">Trabajador</label>
+        <select class="ci" id="pm-trabajador">
+          <option value="">— Selecciona trabajador —</option>
+        </select>
+      </div>
+      <div>
+        <label class="cl2">Fecha del parte</label>
+        <input type="date" class="ci" id="pm-fecha"/>
+      </div>
+      <div>
+        <label class="cl2">Tipo de parte</label>
+        <select class="ci" id="pm-tipo" onchange="cambiarTipoManual()">
+          <option value="descanso">🛌 Día de descanso (acumulación jornada)</option>
+          <option value="saliente">🌙 Saliente de noche (jornada perdida)</option>
+        </select>
+      </div>
+      <div>
+        <label class="cl2">Turno</label>
+        <select class="ci" id="pm-turno">
+          <option value="mañana">Mañana (8h) 07:00–15:00</option>
+          <option value="noche">Noche (12h) 07:00–19:00</option>
+          <option value="especial">Especial</option>
+        </select>
+      </div>
+      <div>
+        <label class="cl2">Obra / Proyecto</label>
+        <select class="ci" id="pm-obra">
+          <option value="">— Selecciona obra —</option>
+        </select>
+      </div>
+      <div>
+        <label class="cl2">Horas</label>
+        <input type="number" class="ci" id="pm-horas" value="8" min="1" max="24" step="0.5"/>
+      </div>
+      <div class="full">
+        <label class="cl2">Observaciones</label>
+        <input type="text" class="ci" id="pm-obs" placeholder="Ej: Descanso compensatorio semana 17 / Saliente turno noche día 21"/>
+      </div>
+    </div>
+    <div style="background:#f0f8ff;border:1px solid #bee3f8;border-radius:6px;padding:8px 12px;font-size:13px;margin-top:16px" id="pm-info">
+      Las 8 horas se registrarán como <b style="color:#27ae60">8h normales</b>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;border-top:1px solid var(--borde);padding-top:16px">
+      <button class="btn bgris" onclick="cerrarParteManual()">Cancelar</button>
+      <button class="btn" style="background:#8e44ad;color:white" onclick="enviarParteManual()">CREAR PARTE</button>
+    </div>
   </div>
 </div>
 
@@ -344,6 +406,7 @@ function doLogin(){
     document.getElementById('app').style.display='block';
     document.getElementById('hrol').textContent=rol==='supervisor'?'SUPERVISOR':'JEFE DE OBRA';
     document.getElementById('main-tabs').style.display=rol==='jefe'?'flex':'none';
+    document.getElementById('btn-parte-manual').style.display=rol==='supervisor'?'inline-block':'none';
     // Jefe de obra ve por defecto los validados por supervisor
     // Supervisor ve por defecto los pendientes
     document.getElementById('s-e').value=rol==='jefe'?'supervisor':'pendiente';
@@ -1099,12 +1162,12 @@ async function xlsNominas(){
     const tExtra=ptsOrdenados.reduce((s,p)=>s+(p.horas_extra||0),0);
 
     ws.mergeCells(filaActual,1,filaActual,totalCols-2);
-    celda(ws,filaActual,COL_PROY,'NORMALES',{bold:true,bg:VERDE_CLARO,align:'left',border:borde});
+    celda(ws,filaActual,COL_PROY,'HORAS NORMALES',{bold:true,bg:VERDE_CLARO,align:'left',border:borde});
     celda(ws,filaActual,COL_TOT,tNorm,{bold:true,bg:VERDE_CLARO,color:'27AE60',border:borde});
     ws.getRow(filaActual).height=14; filaActual++;
 
     ws.mergeCells(filaActual,1,filaActual,totalCols-2);
-    celda(ws,filaActual,COL_PROY,'H.E. 1ª',{bold:true,bg:AMARILLO_CLARO,align:'left',border:borde});
+    celda(ws,filaActual,COL_PROY,'HORAS EXTRA',{bold:true,bg:AMARILLO_CLARO,align:'left',border:borde});
     celda(ws,filaActual,COL_TOT,tExtra,{bold:true,bg:AMARILLO_CLARO,color:'E67E22',border:borde});
     ws.getRow(filaActual).height=14; filaActual+=2;
 
@@ -1247,6 +1310,150 @@ async function xlsProyectos(){
     alert('Error al exportar: '+e.message);
   }
 }
+
+// ─── PARTE MANUAL (DESCANSO / SALIENTE) ──────────────────
+const ZONAS_SUPERVISOR = [
+  { nombre: 'MASA Puertollano',   lat: 38.667512,  lon: -4.063133,  radio: 150 },
+  { nombre: 'MASA Puertollano 2', lat: 38.6795718, lon: -4.0693399, radio: 150 },
+];
+
+function distSup(lat1,lon1,lat2,lon2){
+  const R=6371000, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function abrirParteManual(){
+  // Solo supervisor puede crear partes manuales
+  if(rol!=='supervisor'){toast('Solo el supervisor puede crear partes manuales',false);return;}
+
+  // Verificar geolocalización
+  if(!navigator.geolocation){toast('Tu dispositivo no soporta geolocalización',false);return;}
+
+  toast('Verificando ubicación...',true);
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const {latitude,longitude}=pos.coords;
+      const zonaOk=ZONAS_SUPERVISOR.find(z=>distSup(latitude,longitude,z.lat,z.lon)<=z.radio);
+      if(!zonaOk){
+        toast('Debes estar en las instalaciones para crear un parte manual',false);
+        return;
+      }
+      // Geolocalización OK → abrir modal
+      const hoy=new Date().toISOString().split('T')[0];
+      document.getElementById('pm-fecha').value=hoy;
+      document.getElementById('pm-horas').value=8;
+      actualizarInfoManual();
+
+      // Poblar select trabajadores
+      const selT=document.getElementById('pm-trabajador');
+      selT.innerHTML='<option value="">— Selecciona trabajador —</option>';
+      trabs.forEach(t=>{const o=new Option(t.nombre,t.id);selT.add(o);});
+
+      // Poblar select obras
+      const selO=document.getElementById('pm-obra');
+      selO.innerHTML='<option value="">— Selecciona obra —</option>';
+      obras.forEach(o=>{const op=new Option((o.numero?o.numero+' — ':'')+o.nombre,o.id);selO.add(op);});
+
+      document.getElementById('modal-manual').classList.add('on');
+    },
+    err=>{
+      let msg='No se pudo obtener ubicación.';
+      if(err.code===1) msg='Permiso de ubicación denegado.';
+      toast(msg,false);
+    },
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+  );
+}
+
+function cerrarParteManual(){
+  document.getElementById('modal-manual').classList.remove('on');
+}
+
+function cambiarTipoManual(){
+  actualizarInfoManual();
+}
+
+function actualizarInfoManual(){
+  const h=parseFloat(document.getElementById('pm-horas').value)||8;
+  const esDiaEsp=esFD(document.getElementById('pm-fecha').value);
+  const hn=esDiaEsp?0:Math.min(h,8);
+  const he=esDiaEsp?h:Math.max(0,h-8);
+  const tipo=document.getElementById('pm-tipo').value;
+  const tipoLabel=tipo==='descanso'?'Descanso por acumulación':'Saliente de noche';
+  document.getElementById('pm-info').innerHTML=
+    `<b>${tipoLabel}</b> — ${h}h → <span style="color:var(--verde)">${hn}h normales</span> + <span style="color:var(--amarillo)">${he}h extra</span>${esDiaEsp?' <b style="color:var(--rojo)">(fin semana/festivo)</b>':''}`;
+}
+
+async function enviarParteManual(){
+  const trabId=document.getElementById('pm-trabajador').value;
+  const fecha=document.getElementById('pm-fecha').value;
+  const obraId=document.getElementById('pm-obra').value;
+  const horas=parseFloat(document.getElementById('pm-horas').value)||8;
+  const turno=document.getElementById('pm-turno').value;
+  const tipo=document.getElementById('pm-tipo').value;
+  const obs=document.getElementById('pm-obs').value;
+
+  if(!trabId){toast('Selecciona un trabajador',false);return;}
+  if(!fecha){toast('Selecciona una fecha',false);return;}
+  if(!obraId){toast('Selecciona una obra',false);return;}
+
+  const esDiaEsp=esFD(fecha);
+  const hn=esDiaEsp?0:Math.min(horas,8);
+  const he=esDiaEsp?horas:Math.max(0,horas-8);
+  const tipoLabel=tipo==='descanso'?'DESCANSO':'SALIENTE';
+
+  try{
+    // Crear parte
+    const r1=await fetch(SU+'/rest/v1/partes',{
+      method:'POST',
+      headers:{...H,'Prefer':'return=representation'},
+      body:JSON.stringify({
+        trabajador_id:parseInt(trabId),
+        fecha:fecha,
+        turno:turno,
+        plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,
+        reten:'ninguno',llamadas:0,
+        total_horas:horas,horas_normales:hn,horas_extra:he,
+        validado_jefe_equipo:true, // supervisor lo crea ya validado
+        validado_jefe_obra:false
+      })
+    });
+    if(!r1.ok){
+      const err=await r1.json();
+      if(err.code==='23505'){toast('Ya existe un parte para este trabajador en esa fecha',false);return;}
+      throw new Error('Error al crear parte');
+    }
+    const parteData=await r1.json();
+    const parteId=parteData[0].id;
+
+    // Crear línea de obra
+    await fetch(SU+'/rest/v1/partes_obras',{
+      method:'POST',
+      headers:H,
+      body:JSON.stringify([{
+        parte_id:parteId,
+        obra_id:parseInt(obraId),
+        horas:horas,
+        comentarios:`[${tipoLabel}] ${obs||'Generado por supervisor'}`
+      }])
+    });
+
+    cerrarParteManual();
+    toast('Parte '+tipoLabel+' creado correctamente ✓',true);
+    buscar();
+  } catch(e){
+    toast('Error al crear el parte: '+e.message,false);
+  }
+}
+
+// Actualizar info cuando cambian horas o fecha en parte manual
+document.addEventListener('DOMContentLoaded',()=>{
+  const pmH=document.getElementById('pm-horas');
+  const pmF=document.getElementById('pm-fecha');
+  if(pmH) pmH.addEventListener('input',actualizarInfoManual);
+  if(pmF) pmF.addEventListener('change',actualizarInfoManual);
+});
 
 function toast(msg,ok){
   const t=document.getElementById('toast');
