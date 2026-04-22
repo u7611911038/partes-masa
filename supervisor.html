@@ -1275,109 +1275,118 @@ async function xlsNominas(){
   });
 
   // ── HOJA INSTRUCCIONES MACRO PDF ────────────────────────
-  const wsMacro=wb.addWorksheet('📄 MACRO IMPRIMIR PDF');
-  wsMacro.views=[{showGridLines:false}];
-  wsMacro.getColumn(1).width=80;
-  wsMacro.getRow(1).height=30;
+  const wsMacro = wb.addWorksheet('📄 MACRO IMPRIMIR PDF');
+wsMacro.views = [{ showGridLines: false }];
+wsMacro.getColumn(1).width = 80;
+wsMacro.getRow(1).height = 30;
 
-  const mTit=wsMacro.getCell(1,1);
-  mTit.value='MASA — INSTRUCCIONES PARA IMPRIMIR TODAS LAS HOJAS EN PDF';
-  mTit.font={bold:true,size:13,color:{argb:'FF'+BLANCO},name:'Arial'};
-  mTit.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF8E44AD'}};
-  mTit.alignment={horizontal:'center',vertical:'middle'};
+const mTit = wsMacro.getCell(1, 1);
+mTit.value = 'MASA — INSTRUCCIONES PARA IMPRIMIR TODAS LAS HOJAS EN PDF';
+mTit.font = { bold: true, size: 13, color: { argb: 'FF' + BLANCO }, name: 'Arial' };
+mTit.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8E44AD' } };
+mTit.alignment = { horizontal: 'center', vertical: 'middle' };
 
-  const pasosMacro=[
-    ['', ''],
-    ['PASO 1', 'Abre este archivo Excel y pulsa  ALT + F11  para abrir el Editor de Visual Basic.'],
-    ['PASO 2', 'En el panel izquierdo, haz clic derecho sobre el nombre del proyecto (VBAProject).'],
-    ['PASO 3', 'Selecciona  Insertar  →  Módulo.'],
-    ['PASO 4', 'Copia TODO el código de abajo y pégalo en el módulo vacío.'],
-    ['PASO 5', 'Cierra el editor (ALT+F4) y guarda el archivo como  .xlsm  (Excel con macros).'],
-    ['PASO 6', 'La próxima vez que abras el .xlsm podrás ejecutar la macro con  ALT+F8  → ImprimirNominasPDF.'],
-    ['', ''],
-    ['⬇ CÓDIGO VBA (copia desde aquí hasta el final)', ''],
-    ['', ''],
-    ['Sub ImprimirNominasPDF()', ''],
-    ['    Dim wb As Workbook', ''],
-    ['    Dim hojas() As String', ''],
-    ['    Dim count As Integer', ''],
-    ['    Dim rutaPDF As String', ''],
-    ['    ', ''],
-    ['    Set wb = ThisWorkbook', ''],
-    ['    count = 0', ''],
-    ['    ', ''],
-    ['    For Each ws In wb.Worksheets', ''],
-    ['        If ws.Name <> "RESUMEN" And ws.Name <> "📄 MACRO IMPRIMIR PDF" Then', ''],
-    ['            count = count + 1', ''],
-    ['            ReDim Preserve hojas(count - 1)', ''],
-    ['            hojas(count - 1) = ws.Name', ''],
-    ['        End If', ''],
-    ['    Next ws', ''],
-    ['    ', ''],
-    ['    If count = 0 Then', ''],
-    ['        MsgBox "No hay hojas de trabajadores.", vbInformation', ''],
-    ['        Exit Sub', ''],
-    ['    End If', ''],
-    ['    ', ''],
-    ['    rutaPDF = wb.Path & "\\" & Left(wb.Name, InStrRev(wb.Name, ".") - 1) & "_NOMINAS.pdf"', ''],
-    ['    ', ''],
-    ['    wb.Sheets(hojas).Select', ''],
-    ['    ', ''],
-    ['    ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, _', ''],
-    ['        Filename:=rutaPDF, _', ''],
-    ['        Quality:=xlQualityStandard, _', ''],
-    ['        IncludeDocProperties:=True, _', ''],
-    ['        IgnorePrintAreas:=False, _', ''],
-    ['        OpenAfterPublish:=True', ''],
-    ['    ', ''],
-    ['    wb.Sheets("RESUMEN").Select', ''],
-    ['    MsgBox "PDF guardado en:" & Chr(10) & rutaPDF, vbInformation, "MASA Nóminas"', ''],
-    ['End Sub', ''],
-  ];
+const pasosMacro = [
+  ['', ''],
+  ['PASO 1', 'Abre este archivo Excel y pulsa  ALT + F11  para abrir el Editor de Visual Basic.'],
+  ['PASO 2', 'En el panel izquierdo, haz clic derecho sobre el nombre del proyecto (VBAProject).'],
+  ['PASO 3', 'Selecciona  Insertar  →  Módulo.'],
+  ['PASO 4', 'Copia TODO el código de abajo y pégalo en el módulo vacío.'],
+  ['PASO 5', 'Cierra el editor (ALT+F4) y guarda el archivo como  .xlsm  (Excel con macros).'],
+  ['PASO 6', 'La próxima vez que abras el .xlsm podrás ejecutar la macro con  ALT+F8  → ImprimirNominasPDF.'],
+  ['', ''],
+  ['⬇ CÓDIGO VBA (copia desde aquí hasta el final)', ''],
+  ['', ''],
+  ['Sub ImprimirNominasPDF()', ''],
+  ['    Dim wb As Workbook', ''],
+  ['    Dim ws As Worksheet', ''],
+  ['    Dim hojas() As String', ''],
+  ['    Dim count As Integer', ''],
+  ['    Dim rutaPDF As String', ''],
+  ['    ', ''],
+  ['    Set wb = ThisWorkbook', ''],
+  ['    count = 0', ''],
+  ['    ', ''],
+  ['    For Each ws In wb.Worksheets', ''],
+  ['        If ws.Name <> "RESUMEN" And ws.Name <> "📄 MACRO IMPRIMIR PDF" Then', ''],
+  ['            \' Configuración de impresión para rango A1:AG30', ''],
+  ['            With ws.PageSetup', ''],
+  ['                .PrintArea = "$A$1:$AG$30"', ''],
+  ['                .Zoom = False', ''],
+  ['                .FitToPagesWide = 1', ''],
+  ['                .FitToPagesTall = 1', ''],
+  ['                .Orientation = 2 \' 2 es horizontal (xlLandscape)', ''],
+  ['            End With', ''],
+  ['            ', ''],
+  ['            count = count + 1', ''],
+  ['            ReDim Preserve hojas(count - 1)', ''],
+  ['            hojas(count - 1) = ws.Name', ''],
+  ['        End If', ''],
+  ['    Next ws', ''],
+  ['    ', ''],
+  ['    If count = 0 Then', ''],
+  ['        MsgBox "No hay hojas de trabajadores.", vbInformation', ''],
+  ['        Exit Sub', ''],
+  ['    End If', ''],
+  ['    ', ''],
+  ['    rutaPDF = wb.Path & "\\" & Left(wb.Name, InStrRev(wb.Name, ".") - 1) & "_NOMINAS.pdf"', ''],
+  ['    ', ''],
+  ['    wb.Sheets(hojas).Select', ''],
+  ['    ', ''],
+  ['    ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, _', ''],
+  ['        Filename:=rutaPDF, _', ''],
+  ['        Quality:=xlQualityStandard, _', ''],
+  ['        IncludeDocProperties:=True, _', ''],
+  ['        IgnorePrintAreas:=False, _', ''],
+  ['        OpenAfterPublish:=True', ''],
+  ['    ', ''],
+  ['    wb.Sheets("RESUMEN").Select', ''],
+  ['    MsgBox "PDF guardado en:" & Chr(10) & rutaPDF, vbInformation, "MASA Nóminas"', ''],
+  ['End Sub', ''],
+];
 
-  pasosMacro.forEach((fila,i)=>{
-    const row=i+2;
-    const c=wsMacro.getCell(row,1);
-    const esPaso=fila[0].startsWith('PASO');
-    const esCodigo=fila[0].startsWith('    ')||fila[0].startsWith('Sub ')||fila[0].startsWith('End ')||fila[0].startsWith('For ')||fila[0].startsWith('If ')||fila[0].startsWith('Next')||fila[0]==='    ';
-    const esFlecha=fila[0].startsWith('⬇');
+pasosMacro.forEach((fila, i) => {
+  const row = i + 2;
+  const c = wsMacro.getCell(row, 1);
+  const esPaso = fila[0].startsWith('PASO');
+  const esCodigo = fila[0].startsWith('    ') || fila[0].startsWith('Sub ') || fila[0].startsWith('End ') || fila[0].startsWith('For ') || fila[0].startsWith('If ') || fila[0].startsWith('Next') || fila[0] === '    ' || fila[0].startsWith('With ') || fila[0].startsWith('            .');
+  const esFlecha = fila[0].startsWith('⬇');
 
-    if(fila[0]===''&&fila[1]===''){
-      wsMacro.getRow(row).height=8; return;
-    }
+  if (fila[0] === '' && fila[1] === '') {
+    wsMacro.getRow(row).height = 8; return;
+  }
 
-    if(esPaso){
-      c.value=fila[0]+':  '+fila[1];
-      c.font={bold:true,size:10,name:'Arial',color:{argb:'FF'+BLANCO}};
-      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF8E44AD'}};
-      c.alignment={horizontal:'left',vertical:'middle',indent:1};
-      wsMacro.getRow(row).height=18;
-    } else if(esFlecha){
-      c.value=fila[0];
-      c.font={bold:true,size:10,name:'Arial',color:{argb:'FF'+BLANCO}};
-      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+ROJO}};
-      c.alignment={horizontal:'center',vertical:'middle'};
-      wsMacro.getRow(row).height=18;
-    } else {
-      // Código VBA
-      c.value=fila[0];
-      c.font={size:9,name:'Courier New',color:{argb:'FF1A1A1A'}};
-      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF8F8F8'}};
-      c.alignment={horizontal:'left',vertical:'middle',indent:1};
-      c.border={left:{style:'thin',color:{argb:'FFD9D9D9'}},right:{style:'thin',color:{argb:'FFD9D9D9'}}};
-      wsMacro.getRow(row).height=14;
-    }
-  });
+  if (esPaso) {
+    c.value = fila[0] + ':  ' + fila[1];
+    c.font = { bold: true, size: 10, name: 'Arial', color: { argb: 'FF' + BLANCO } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8E44AD' } };
+    c.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+    wsMacro.getRow(row).height = 18;
+  } else if (esFlecha) {
+    c.value = fila[0];
+    c.font = { bold: true, size: 10, name: 'Arial', color: { argb: 'FF' + BLANCO } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + ROJO } };
+    c.alignment = { horizontal: 'center', vertical: 'middle' };
+    wsMacro.getRow(row).height = 18;
+  } else {
+    // Código VBA
+    c.value = fila[0];
+    c.font = { size: 9, name: 'Courier New', color: { argb: 'FF1A1A1A' } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F8F8' } };
+    c.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+    c.border = { left: { style: 'thin', color: { argb: 'FFD9D9D9' } }, right: { style: 'thin', color: { argb: 'FFD9D9D9' } } };
+    wsMacro.getRow(row).height = 14;
+  }
+});
 
-  // ── GUARDAR ──────────────────────────────────────────────
-  const buffer=await wb.xlsx.writeBuffer();
-  const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download='MASA_Nominas_'+mes+'.xlsx'; a.click();
-  URL.revokeObjectURL(url);
-}
-
+// ── GUARDAR ──────────────────────────────────────────────
+const buffer = await wb.xlsx.writeBuffer();
+const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url; a.download = 'MASA_Nominas_' + mes + '.xlsx'; a.click();
+URL.revokeObjectURL(url);
+  
 // ─── EXCEL PROYECTOS ──────────────────────────────────────
 async function xlsProyectos(){
   const obraId=document.getElementById('sp-o').value;
