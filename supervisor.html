@@ -1164,14 +1164,14 @@ async function xlsNominas(){
 
     celda(ws,filaActual,COL_PROY,'HORAS NORMALES',{bold:true,bg:VERDE_CLARO,align:'left',border:borde});
     celda(ws,filaActual,COL_TOT,tNorm,{bold:true,bg:VERDE_CLARO,color:'27AE60',border:borde});
-    // Rellenar resto de columnas para no dejar huecos
-    for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT-1+d,'',{bg:VERDE_CLARO,border:borde,borde:borde});
+    // Rellenar columnas de días (desde col 3 en adelante) y Reg — NO tocar COL_TOT
+    for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT+d,'',{bg:VERDE_CLARO,border:borde});
     celda(ws,filaActual,COL_REG,'',{bg:VERDE_CLARO,border:borde});
     ws.getRow(filaActual).height=14; filaActual++;
 
     celda(ws,filaActual,COL_PROY,'HORAS EXTRA',{bold:true,bg:AMARILLO_CLARO,align:'left',border:borde});
     celda(ws,filaActual,COL_TOT,tExtra,{bold:true,bg:AMARILLO_CLARO,color:'E67E22',border:borde});
-    for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT-1+d,'',{bg:AMARILLO_CLARO,border:borde});
+    for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT+d,'',{bg:AMARILLO_CLARO,border:borde});
     celda(ws,filaActual,COL_REG,'',{bg:AMARILLO_CLARO,border:borde});
     ws.getRow(filaActual).height=14; filaActual+=2;
 
@@ -1208,7 +1208,7 @@ async function xlsNominas(){
     // Título RESUMEN DEL MES — sin merge, título en A, vacío en resto
     celda(ws,filaActual,COL_PROY,'RESUMEN DEL MES',{bold:true,bg:'333333',color:BLANCO,align:'left',border:borde});
     celda(ws,filaActual,COL_TOT,'',{bg:'333333',border:borde});
-    for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT-1+d,'',{bg:'333333',border:borde});
+    for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT+d,'',{bg:'333333',border:borde});
     celda(ws,filaActual,COL_REG,'',{bg:'333333',border:borde});
     ws.getRow(filaActual).height=16; filaActual++;
 
@@ -1229,7 +1229,8 @@ async function xlsNominas(){
     resumenItems.forEach(([label,val,bg])=>{
       celda(ws,filaActual,COL_PROY,label,{bold:true,bg,align:'left',border:borde});
       celda(ws,filaActual,COL_TOT,val,{bold:true,bg,color:ROJO,border:borde});
-      for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT-1+d,'',{bg,border:borde});
+      // Rellenar columnas de días sin tocar COL_TOT
+      for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT+d,'',{bg,border:borde});
       celda(ws,filaActual,COL_REG,'',{bg,border:borde});
       ws.getRow(filaActual).height=14; filaActual++;
     });
