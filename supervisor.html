@@ -1158,17 +1158,21 @@ async function xlsNominas(){
     filaActual+=2;
 
     // ── SECCIÓN HORAS NORMALES / EXTRA ───────────────────────
+    // SIN merge — título en col A, valor en col B (TOTALES)
     const tNorm=ptsOrdenados.reduce((s,p)=>s+(p.horas_normales||0),0);
     const tExtra=ptsOrdenados.reduce((s,p)=>s+(p.horas_extra||0),0);
 
-    ws.mergeCells(filaActual,1,filaActual,totalCols-2);
     celda(ws,filaActual,COL_PROY,'HORAS NORMALES',{bold:true,bg:VERDE_CLARO,align:'left',border:borde});
     celda(ws,filaActual,COL_TOT,tNorm,{bold:true,bg:VERDE_CLARO,color:'27AE60',border:borde});
+    // Rellenar resto de columnas para no dejar huecos
+    for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT-1+d,'',{bg:VERDE_CLARO,border:borde,borde:borde});
+    celda(ws,filaActual,COL_REG,'',{bg:VERDE_CLARO,border:borde});
     ws.getRow(filaActual).height=14; filaActual++;
 
-    ws.mergeCells(filaActual,1,filaActual,totalCols-2);
     celda(ws,filaActual,COL_PROY,'HORAS EXTRA',{bold:true,bg:AMARILLO_CLARO,align:'left',border:borde});
     celda(ws,filaActual,COL_TOT,tExtra,{bold:true,bg:AMARILLO_CLARO,color:'E67E22',border:borde});
+    for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT-1+d,'',{bg:AMARILLO_CLARO,border:borde});
+    celda(ws,filaActual,COL_REG,'',{bg:AMARILLO_CLARO,border:borde});
     ws.getRow(filaActual).height=14; filaActual+=2;
 
     // ── SECCIÓN PLUSES POR DÍA ───────────────────────────────
@@ -1200,7 +1204,15 @@ async function xlsNominas(){
 
     filaActual++;
 
-    // ── RESUMEN FINAL — orden exacto del usuario ─────────────
+    // ── RESUMEN FINAL — título oscuro + 10 conceptos ─────────
+    // Título RESUMEN DEL MES — sin merge, título en A, vacío en resto
+    celda(ws,filaActual,COL_PROY,'RESUMEN DEL MES',{bold:true,bg:'333333',color:BLANCO,align:'left',border:borde});
+    celda(ws,filaActual,COL_TOT,'',{bg:'333333',border:borde});
+    for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT-1+d,'',{bg:'333333',border:borde});
+    celda(ws,filaActual,COL_REG,'',{bg:'333333',border:borde});
+    ws.getRow(filaActual).height=16; filaActual++;
+
+    // 10 conceptos — título en col A, valor en col B, resto vacío
     const resumenItems=[
       ['DIAS TRABAJO',    ptsOrdenados.length,                                                    BLANCO],
       ['RETEN DIARIO',    ptsOrdenados.filter(p=>p.reten==='diario').length,                      AZUL_CLARO],
@@ -1214,18 +1226,11 @@ async function xlsNominas(){
       ['TURNICIDAD',      ptsOrdenados.filter(p=>p.plus_turnicidad).length+' días',               GRIS],
     ];
 
-    // Título resumen
-    ws.mergeCells(filaActual,1,filaActual,totalCols);
-    const cTitRes=ws.getCell(filaActual,1);
-    cTitRes.value='RESUMEN DEL MES'; cTitRes.font={bold:true,name:'Arial',size:9,color:{argb:'FF'+BLANCO}};
-    cTitRes.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF333333'}};
-    cTitRes.alignment={horizontal:'center',vertical:'middle'};
-    ws.getRow(filaActual).height=16; filaActual++;
-
     resumenItems.forEach(([label,val,bg])=>{
-      ws.mergeCells(filaActual,1,filaActual,totalCols-2);
-      celda(ws,filaActual,1,label,{bold:true,bg,align:'left',border:borde});
+      celda(ws,filaActual,COL_PROY,label,{bold:true,bg,align:'left',border:borde});
       celda(ws,filaActual,COL_TOT,val,{bold:true,bg,color:ROJO,border:borde});
+      for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT-1+d,'',{bg,border:borde});
+      celda(ws,filaActual,COL_REG,'',{bg,border:borde});
       ws.getRow(filaActual).height=14; filaActual++;
     });
 
@@ -1249,8 +1254,23 @@ async function xlsNominas(){
     // ── ANCHOS DE COLUMNA ────────────────────────────────────
     ws.getColumn(COL_PROY).width=32;
     ws.getColumn(COL_TOT).width=8;
-    for(let d=1;d<=diasDelMes;d++) ws.getColumn(COL_TOT-1+d).width=4.5;
-    ws.getColumn(COL_REG).width=6;
+    for(let d=1;d<=diasDelMes;d++) ws.getColumn(COL_TOT-1+d).width=4.2;
+    ws.getColumn(COL_REG).width=5.5;
+
+    // ── CONFIGURACIÓN DE PÁGINA PARA PDF ─────────────────────
+    ws.pageSetup={
+      paperSize:9,            // A4
+      orientation:'landscape', // Horizontal — cabe todo el mes
+      fitToPage:true,
+      fitToWidth:1,           // Todo en 1 página de ancho
+      fitToHeight:1,          // Todo en 1 página de alto
+      margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.1,footer:0.1},
+      horizontalCentered:true,
+      printTitlesRow:'$1:$3'  // Repetir cabeceras en cada página si se divide
+    };
+    // Área de impresión = todo el contenido
+    const ultCol=String.fromCharCode(64+COL_REG);
+    ws.pageSetup.printArea=`A1:${ultCol}${filaActual+2}`;
   });
 
   // ── HOJA INSTRUCCIONES MACRO PDF ────────────────────────
