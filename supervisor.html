@@ -1108,8 +1108,26 @@ async function xlsNominas(){
     celda(ws,3,COL_REG,'Reg.',{bold:true,bg:'333333',color:BLANCO,border:borde});
     ws.getRow(3).height=18;
 
+    // Obtener convenio del trabajador
+    const trabData=trabs.find(t=>t.nombre===nombre);
+    const convenioXls=trabData?.horas_convenio||11;
+
     // ── FILAS OBRAS ──────────────────────────────────────────
     let filaActual=4;
+
+    // Pre-calcular qué obra es la última por cada día (para aplicar descuento)
+    const ultimaObraPorFecha={};
+    ptsOrdenados.forEach(parte=>{
+      const obs=parte.partes_obras||[];
+      if(obs.length>0){
+        const totalDia=obs.reduce((s,o)=>s+(o.horas||0),0);
+        if(totalDia>=12&&convenioXls===11){
+          // Última obra = la que tiene mayor obra_id entre las del parte (orden de inserción)
+          ultimaObraPorFecha[parte.fecha]=obs[obs.length-1].obra_id;
+        }
+      }
+    });
+
     obrasUsadas.forEach((obraNombre,obraId)=>{
       let total=0,reg=0;
       celda(ws,filaActual,COL_PROY,obraNombre,{bold:false,bg:BLANCO,align:'left',border:borde});
@@ -1117,18 +1135,25 @@ async function xlsNominas(){
         const fecha=`${anio}-${mesNum}-${String(d).padStart(2,'0')}`;
         const parte=porFecha[fecha];
         const obraDelDia=parte?.partes_obras?.find(o=>o.obra_id==obraId);
-        const h=obraDelDia?.horas||null;
+        const hBruto=obraDelDia?.horas||null;
+
+        // Descuento: si esta obra es la última del día, restar 1h
+        let hEfectiva=hBruto;
+        if(hBruto&&ultimaObraPorFecha[fecha]==obraId){
+          hEfectiva=Math.max(0,hBruto-1);
+        }
+
         const diaSem=new Date(fecha+'T12:00:00').getDay();
         const esFin=diaSem===0||diaSem===6;
         const esFest=festivos.includes(fecha);
-        const bg=esFin||esFest?(h?'FFAAAA':'FFCCCC'):(h?AZUL_CLARO:BLANCO);
+        const bg=esFin||esFest?(hEfectiva?'FFAAAA':'FFCCCC'):(hEfectiva?AZUL_CLARO:BLANCO);
         const c=ws.getCell(filaActual,COL_TOT+d);
-        c.value=h||null; c.font={name:'Arial',size:8,bold:!!h};
+        c.value=hEfectiva||null; c.font={name:'Arial',size:8,bold:!!hEfectiva};
         c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};
         c.alignment={horizontal:'center',vertical:'middle'};
         c.border=borde;
-        if(h) total+=h;
-        if(h&&(esFin||esFest)) reg+=h;
+        if(hEfectiva) total+=hEfectiva;
+        if(hEfectiva&&(esFin||esFest)) reg+=hEfectiva;
       }
       celda(ws,filaActual,COL_TOT,total||null,{bold:true,bg:AZUL_CLARO,border:borde});
       celda(ws,filaActual,COL_REG,reg||null,{bold:true,bg:ROJO_CLARO,color:reg?ROJO:DARK,border:borde});
@@ -1141,7 +1166,9 @@ async function xlsNominas(){
     for(let d=1;d<=diasDelMes;d++){
       const fecha=`${anio}-${mesNum}-${String(d).padStart(2,'0')}`;
       const parte=porFecha[fecha];
-      const th=(parte?.partes_obras||[]).reduce((s,o)=>s+(o.horas||0),0);
+      const thBruto=(parte?.partes_obras||[]).reduce((s,o)=>s+(o.horas||0),0);
+      // Aplicar descuento convenio
+      const th=(thBruto>=12&&convenioXls===11)?thBruto-1:thBruto;
       const diaSem=new Date(fecha+'T12:00:00').getDay();
       const esFin=diaSem===0||diaSem===6;
       const bg=esFin||festivos.includes(fecha)?'FFCCCC':GRIS;
