@@ -150,6 +150,9 @@
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#333;color:white;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:9999;transition:transform .3s;border-left:4px solid var(--rojo);}
   .toast.on{transform:translateX(-50%) translateY(0);}
   .toast.ok{border-left-color:var(--verde);}
+  .btn-tipo-jefe{flex:1;padding:10px 6px;border:2px solid var(--borde);border-radius:8px;background:white;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s;color:var(--txt2)}
+  .btn-tipo-jefe.active{border-color:#16a085;background:#eafaf1;color:#16a085}
+  .btn-tipo-jefe:hover{border-color:#16a085;color:#16a085}
   @media(max-width:768px){.cards{grid-template-columns:repeat(2,1fr);}.g2{grid-template-columns:1fr;}.full{grid-column:span 1;}.rg{grid-template-columns:repeat(2,1fr);}.proy-resumen{grid-template-columns:1fr;}}
 </style>
 </head>
@@ -228,6 +231,7 @@
           <button class="btn bverde" onclick="xlsObras()">⬇ OBRAS</button>
           <button class="btn bazul" onclick="xlsNominas()">⬇ NÓMINAS</button>
           <button class="btn" style="background:#8e44ad;color:white" onclick="abrirParteManual()" id="btn-parte-manual">+ PARTE MANUAL</button>
+          <button class="btn" style="background:#16a085;color:white" onclick="abrirParteJefe()" id="btn-parte-jefe">+ PARTE JEFE</button>
         </div>
       </div>
       <div id="resultados"></div>
@@ -323,6 +327,124 @@
   </div>
 </div>
 
+<!-- MODAL PARTE JEFE DE OBRA -->
+<div class="modal" id="modal-jefe">
+  <div class="mc">
+    <div class="mh">
+      <div class="mt" style="color:#16a085">+ PARTE MANUAL — JEFE DE OBRA</div>
+      <button class="bx" onclick="cerrarParteJefe()">×</button>
+    </div>
+
+    <!-- SELECTOR TIPO -->
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <button class="btn-tipo-jefe active" id="tjefe-olvido" onclick="selTipoJefe('olvido')">🔧 OLVIDO</button>
+      <button class="btn-tipo-jefe" id="tjefe-vacaciones" onclick="selTipoJefe('vacaciones')">🏖️ VACACIONES</button>
+      <button class="btn-tipo-jefe" id="tjefe-medico" onclick="selTipoJefe('medico')">🏥 MÉDICO</button>
+    </div>
+
+    <!-- INFO SEGÚN TIPO -->
+    <div id="info-tjefe-olvido" class="info-tjefe" style="background:#f0f8ff;border:1px solid #bee3f8;border-radius:6px;padding:10px 14px;font-size:13px;color:#2980b9;margin-bottom:16px">
+      🔧 <b>Olvido:</b> El trabajador olvidó hacer el parte. Se creará como un parte normal con las obras y horas que indiques. Aparecerá en nómina como cualquier otro parte.
+    </div>
+    <div id="info-tjefe-vacaciones" class="info-tjefe" style="display:none;background:#eafaf1;border:1px solid #a9dfbf;border-radius:6px;padding:10px 14px;font-size:13px;color:#1e8449;margin-bottom:16px">
+      🏖️ <b>Vacaciones:</b> El trabajador estaba de vacaciones. Aparecerá como <b>VAC</b> en la hoja de horas. No cuenta como día trabajado ni suma horas.
+    </div>
+    <div id="info-tjefe-medico" class="info-tjefe" style="display:none;background:#fef9ee;border:1px solid #f9ca7c;border-radius:6px;padding:10px 14px;font-size:13px;color:#b7770d;margin-bottom:16px">
+      🏥 <b>Médico:</b> El trabajador fue al médico. Aparecerá como <b>MED</b> en la hoja de horas. No cuenta como día trabajado ni suma horas.
+    </div>
+
+    <!-- CAMPOS COMUNES -->
+    <div class="g2">
+      <div>
+        <label class="cl2">Trabajador</label>
+        <select class="ci" id="pj-trabajador"><option value="">— Selecciona —</option></select>
+      </div>
+      <div>
+        <label class="cl2">Fecha del parte</label>
+        <input type="date" class="ci" id="pj-fecha"/>
+      </div>
+    </div>
+
+    <!-- CAMPOS SOLO OLVIDO -->
+    <div id="campos-olvido">
+      <div class="g2" style="margin-top:12px">
+        <div>
+          <label class="cl2">Turno</label>
+          <select class="ci" id="pj-turno">
+            <option value="mañana">Mañana (8h) 07:00–15:00</option>
+            <option value="noche">Noche (12h) 07:00–19:00</option>
+            <option value="especial">Especial</option>
+          </select>
+        </div>
+        <div>
+          <label class="cl2">Nocturnidad</label>
+          <select class="ci" id="pj-noct">
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div>
+          <label class="cl2">Turnicidad</label>
+          <select class="ci" id="pj-turn">
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div>
+          <label class="cl2">Entrada Complejo</label>
+          <select class="ci" id="pj-entr">
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div>
+          <label class="cl2">Plus Taller</label>
+          <select class="ci" id="pj-tall">
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div>
+          <label class="cl2">Retén</label>
+          <select class="ci" id="pj-reten">
+            <option value="ninguno">Ninguno</option>
+            <option value="diario">Diario</option>
+            <option value="fin_de_semana">Fin de semana</option>
+            <option value="festivo">Festivo</option>
+            <option value="semanal">Semanal</option>
+          </select>
+        </div>
+        <div>
+          <label class="cl2">Llamadas al retén</label>
+          <input type="number" class="ci" id="pj-llamadas" value="0" min="0" max="10"/>
+        </div>
+      </div>
+
+      <!-- Obras dinámicas -->
+      <div style="margin-top:14px">
+        <label class="cl2">Obras y horas</label>
+        <div id="pj-obras-lista"></div>
+        <button class="btn bgris" style="margin-top:8px;font-size:12px" onclick="pjAddObra()">+ Añadir obra</button>
+      </div>
+
+      <div style="background:#f0f8ff;border:1px solid #bee3f8;border-radius:6px;padding:8px 12px;font-size:13px;margin-top:14px" id="pj-info-horas">
+        Introduce las obras y horas para ver el cálculo
+      </div>
+    </div>
+
+    <!-- OBSERVACIONES -->
+    <div style="margin-top:14px">
+      <label class="cl2">Observaciones</label>
+      <input type="text" class="ci" id="pj-obs" placeholder="Observaciones opcionales"/>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;border-top:1px solid var(--borde);padding-top:16px">
+      <button class="btn bgris" onclick="cerrarParteJefe()">Cancelar</button>
+      <button class="btn" style="background:#16a085;color:white" onclick="enviarParteJefe()">CREAR PARTE</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EDITAR -->
 <div class="modal" id="modal">
   <div class="mc">
@@ -407,6 +529,7 @@ function doLogin(){
     document.getElementById('hrol').textContent=rol==='supervisor'?'SUPERVISOR':'JEFE DE OBRA';
     document.getElementById('main-tabs').style.display=rol==='jefe'?'flex':'none';
     document.getElementById('btn-parte-manual').style.display=rol==='supervisor'?'inline-block':'none';
+    document.getElementById('btn-parte-jefe').style.display=rol==='jefe'?'inline-block':'none';
     // Jefe de obra ve por defecto los validados por supervisor
     // Supervisor ve por defecto los pendientes
     document.getElementById('s-e').value=rol==='jefe'?'supervisor':'pendiente';
@@ -1137,6 +1260,19 @@ async function xlsNominas(){
         const obraDelDia=parte?.partes_obras?.find(o=>o.obra_id==obraId);
         const hBruto=obraDelDia?.horas||null;
 
+        // Detectar incidencia VAC/MED
+        const incidencia=parte?.tipo_incidencia||null;
+        if(incidencia==='VACACIONES'||incidencia==='MEDICO'){
+          const etiq=incidencia==='VACACIONES'?'VAC':'MED';
+          const bgInc=incidencia==='VACACIONES'?'D5F5E3':'FEF9EE';
+          const c=ws.getCell(filaActual,COL_TOT+d);
+          c.value=etiq; c.font={name:'Arial',size:7,bold:true,color:{argb:incidencia==='VACACIONES'?'FF1E8449':'FFB7770D'}};
+          c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bgInc}};
+          c.alignment={horizontal:'center',vertical:'middle'};
+          c.border=borde;
+          continue;
+        }
+
         // Descuento: si esta obra es la última del día, restar 1h
         let hEfectiva=hBruto;
         if(hBruto&&ultimaObraPorFecha[fecha]==obraId){
@@ -1469,6 +1605,200 @@ async function xlsProyectos(){
   } catch(e){
     alert('Error al exportar: '+e.message);
   }
+}
+
+// ─── PARTE MANUAL JEFE DE OBRA ───────────────────────────
+let tipoParteJefe='olvido';
+let pjObraCount=0;
+
+function abrirParteJefe(){
+  const hoy=new Date().toISOString().split('T')[0];
+  document.getElementById('pj-fecha').value=hoy;
+  tipoParteJefe='olvido';
+  selTipoJefe('olvido');
+
+  // Poblar trabajadores
+  const selT=document.getElementById('pj-trabajador');
+  selT.innerHTML='<option value="">— Selecciona trabajador —</option>';
+  trabs.forEach(t=>{selT.add(new Option(t.nombre,t.id));});
+
+  // Iniciar con una obra
+  pjObraCount=0;
+  document.getElementById('pj-obras-lista').innerHTML='';
+  pjAddObra();
+
+  document.getElementById('modal-jefe').classList.add('on');
+}
+
+function cerrarParteJefe(){
+  document.getElementById('modal-jefe').classList.remove('on');
+}
+
+function selTipoJefe(tipo){
+  tipoParteJefe=tipo;
+  ['olvido','vacaciones','medico'].forEach(t=>{
+    document.getElementById('tjefe-'+t).classList.toggle('active',t===tipo);
+    const info=document.getElementById('info-tjefe-'+t);
+    if(info) info.style.display=t===tipo?'block':'none';
+  });
+  document.getElementById('campos-olvido').style.display=tipo==='olvido'?'block':'none';
+}
+
+function pjAddObra(){
+  pjObraCount++;
+  const id=pjObraCount;
+  const div=document.createElement('div');
+  div.id=`pj-obra-row-${id}`;
+  div.style.cssText='display:grid;grid-template-columns:1fr 80px auto;gap:8px;margin-bottom:8px;align-items:center';
+  div.innerHTML=`
+    <select class="ci" id="pj-obra-${id}" onchange="pjActualizarHoras()">
+      <option value="">— Selecciona obra —</option>
+      ${obras.map(o=>`<option value="${o.id}">${o.numero?o.numero+' — ':''}${o.nombre}</option>`).join('')}
+    </select>
+    <input type="number" class="ci" id="pj-horas-${id}" value="8" min="0.5" max="24" step="0.5"
+      style="text-align:center" onchange="pjActualizarHoras()"/>
+    ${id>1?`<button class="btn bgris" style="padding:6px 10px;font-size:16px" onclick="pjRemoveObra(${id})">×</button>`:'<div></div>'}
+  `;
+  document.getElementById('pj-obras-lista').appendChild(div);
+  pjActualizarHoras();
+}
+
+function pjRemoveObra(id){
+  document.getElementById(`pj-obra-row-${id}`).remove();
+  pjActualizarHoras();
+}
+
+function pjActualizarHoras(){
+  if(tipoParteJefe!=='olvido') return;
+  let total=0;
+  for(let i=1;i<=pjObraCount;i++){
+    const h=parseFloat(document.getElementById(`pj-horas-${i}`)?.value)||0;
+    total+=h;
+  }
+  const fecha=document.getElementById('pj-fecha').value;
+  const esDiaEsp=esFD(fecha);
+
+  // Obtener convenio del trabajador seleccionado
+  const trabId=document.getElementById('pj-trabajador').value;
+  const trab=trabs.find(t=>t.id==trabId);
+  const convenio=trab?.horas_convenio||11;
+  let totalEf=total;
+  if(total>=12&&convenio===11) totalEf=total-1;
+
+  const hn=esDiaEsp?0:Math.min(totalEf,8);
+  const he=esDiaEsp?totalEf:Math.max(0,totalEf-8);
+  const llamadas=parseInt(document.getElementById('pj-llamadas')?.value)||0;
+  const heTotal=he+(llamadas*2);
+  const desc=total!==totalEf?` <span style="color:var(--rojo);font-size:11px">(−1h convenio 11h → ${totalEf}h)</span>`:'';
+  document.getElementById('pj-info-horas').innerHTML=
+    `Total: <b>${total}h</b>${desc} → <span style="color:var(--verde)">${hn}h normales</span> + <span style="color:var(--amarillo)">${heTotal}h extra</span>${esDiaEsp?' <b style="color:var(--rojo)">(fin semana/festivo)</b>':''}`;
+}
+
+async function enviarParteJefe(){
+  const trabId=document.getElementById('pj-trabajador').value;
+  const fecha=document.getElementById('pj-fecha').value;
+  const obs=document.getElementById('pj-obs').value;
+
+  if(!trabId){toast('Selecciona un trabajador',false);return;}
+  if(!fecha){toast('Selecciona una fecha',false);return;}
+
+  // ── VACACIONES / MÉDICO ──────────────────────────────────
+  if(tipoParteJefe==='vacaciones'||tipoParteJefe==='medico'){
+    const etiqueta=tipoParteJefe==='vacaciones'?'VACACIONES':'MEDICO';
+    try{
+      const r=await fetch(SU+'/rest/v1/partes',{
+        method:'POST',
+        headers:{...H,'Prefer':'return=representation'},
+        body:JSON.stringify({
+          trabajador_id:parseInt(trabId),
+          fecha,
+          turno:'especial',
+          plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,
+          reten:'ninguno',llamadas:0,
+          total_horas:0,horas_normales:0,horas_extra:0,
+          tipo_incidencia:etiqueta,
+          validado_jefe_equipo:true,
+          validado_jefe_obra:true
+        })
+      });
+      if(!r.ok){
+        const err=await r.json();
+        if(err.code==='23505'){toast('Ya existe un parte para este trabajador en esa fecha',false);return;}
+        throw new Error('Error al crear parte');
+      }
+      cerrarParteJefe();
+      toast(`Parte ${etiqueta} creado correctamente ✓`,true);
+      buscar();
+    } catch(e){ toast('Error: '+e.message,false); }
+    return;
+  }
+
+  // ── OLVIDO — como parte normal ───────────────────────────
+  const turno=document.getElementById('pj-turno').value;
+  const llamadas=parseInt(document.getElementById('pj-llamadas').value)||0;
+  const reten=document.getElementById('pj-reten').value;
+  const noct=document.getElementById('pj-noct').value==='si';
+  const turn=document.getElementById('pj-turn').value==='si';
+  const entr=document.getElementById('pj-entr').value==='si';
+  const tall=document.getElementById('pj-tall').value==='si';
+
+  // Recoger obras
+  const lineasObra=[];
+  for(let i=1;i<=pjObraCount;i++){
+    const obraId=document.getElementById(`pj-obra-${i}`)?.value;
+    const horas=parseFloat(document.getElementById(`pj-horas-${i}`)?.value)||0;
+    if(obraId&&horas>0) lineasObra.push({obraId,horas});
+  }
+  if(!lineasObra.length){toast('Añade al menos una obra con horas',false);return;}
+
+  const total=lineasObra.reduce((s,l)=>s+l.horas,0);
+  const esDiaEsp=esFD(fecha);
+  const trab=trabs.find(t=>t.id==trabId);
+  const convenio=trab?.horas_convenio||11;
+  let totalEf=total;
+  if(total>=12&&convenio===11) totalEf=total-1;
+  const hn=esDiaEsp?0:Math.min(totalEf,8);
+  const he=(esDiaEsp?totalEf:Math.max(0,totalEf-8))+(llamadas*2);
+
+  try{
+    const r=await fetch(SU+'/rest/v1/partes',{
+      method:'POST',
+      headers:{...H,'Prefer':'return=representation'},
+      body:JSON.stringify({
+        trabajador_id:parseInt(trabId),
+        fecha,turno,
+        plus_nocturnidad:noct,plus_turnicidad:turn,plus_entrada:entr,plus_taller:tall,
+        reten,llamadas,
+        total_horas:total,horas_normales:hn,horas_extra:he,
+        tipo_incidencia:'OLVIDO',
+        validado_jefe_equipo:true,
+        validado_jefe_obra:true
+      })
+    });
+    if(!r.ok){
+      const err=await r.json();
+      if(err.code==='23505'){toast('Ya existe un parte para este trabajador en esa fecha',false);return;}
+      throw new Error('Error al crear parte');
+    }
+    const parteData=await r.json();
+    const parteId=parteData[0].id;
+
+    // Crear líneas de obra
+    await fetch(SU+'/rest/v1/partes_obras',{
+      method:'POST',
+      headers:H,
+      body:JSON.stringify(lineasObra.map((l,idx)=>({
+        parte_id:parteId,
+        obra_id:parseInt(l.obraId),
+        horas:l.horas,
+        comentarios:`[OLVIDO] ${obs||'Registrado por jefe de obra'}`
+      })))
+    });
+
+    cerrarParteJefe();
+    toast('Parte OLVIDO creado y aprobado ✓',true);
+    buscar();
+  } catch(e){ toast('Error: '+e.message,false); }
 }
 
 // ─── PARTE MANUAL (DESCANSO / SALIENTE) ──────────────────
