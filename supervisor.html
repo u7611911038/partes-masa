@@ -1122,7 +1122,7 @@ async function xlsNominas(){
         const esFin=diaSem===0||diaSem===6;
         const esFest=festivos.includes(fecha);
         const bg=esFin||esFest?(h?'FFAAAA':'FFCCCC'):(h?AZUL_CLARO:BLANCO);
-        const c=ws.getCell(filaActual,COL_TOT-1+d);
+        const c=ws.getCell(filaActual,COL_TOT+d);
         c.value=h||null; c.font={name:'Arial',size:8,bold:!!h};
         c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};
         c.alignment={horizontal:'center',vertical:'middle'};
@@ -1145,7 +1145,7 @@ async function xlsNominas(){
       const diaSem=new Date(fecha+'T12:00:00').getDay();
       const esFin=diaSem===0||diaSem===6;
       const bg=esFin||festivos.includes(fecha)?'FFCCCC':GRIS;
-      const c=ws.getCell(filaActual,COL_TOT-1+d);
+      const c=ws.getCell(filaActual,COL_TOT+d);
       c.value=th||null; c.font={name:'Arial',size:8,bold:true,color:{argb:'FF'+(th?ROJO:DARK)}};
       c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};
       c.alignment={horizontal:'center',vertical:'middle'};
@@ -1163,17 +1163,22 @@ async function xlsNominas(){
     const tExtra=ptsOrdenados.reduce((s,p)=>s+(p.horas_extra||0),0);
 
     celda(ws,filaActual,COL_PROY,'HORAS NORMALES',{bold:true,bg:VERDE_CLARO,align:'left',border:borde});
-    celda(ws,filaActual,COL_TOT,tNorm,{bold:true,bg:VERDE_CLARO,color:'27AE60',border:borde});
-    // Rellenar columnas de días (desde col 3 en adelante) y Reg — NO tocar COL_TOT
-    for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT+d,'',{bg:VERDE_CLARO,border:borde});
+    ws.mergeCells(filaActual,COL_TOT,filaActual,32);
+    const cNorm=ws.getCell(filaActual,COL_TOT);
+    cNorm.value=tNorm; cNorm.font={name:'Arial',size:14,bold:true,color:{argb:'FF27AE60'}};
+    cNorm.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+VERDE_CLARO}};
+    cNorm.alignment={horizontal:'center',vertical:'middle'}; cNorm.border=borde;
     celda(ws,filaActual,COL_REG,'',{bg:VERDE_CLARO,border:borde});
-    ws.getRow(filaActual).height=14; filaActual++;
+    ws.getRow(filaActual).height=16; filaActual++;
 
     celda(ws,filaActual,COL_PROY,'HORAS EXTRA',{bold:true,bg:AMARILLO_CLARO,align:'left',border:borde});
-    celda(ws,filaActual,COL_TOT,tExtra,{bold:true,bg:AMARILLO_CLARO,color:'E67E22',border:borde});
-    for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT+d,'',{bg:AMARILLO_CLARO,border:borde});
+    ws.mergeCells(filaActual,COL_TOT,filaActual,32);
+    const cExtra=ws.getCell(filaActual,COL_TOT);
+    cExtra.value=tExtra; cExtra.font={name:'Arial',size:14,bold:true,color:{argb:'FFE67E22'}};
+    cExtra.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+AMARILLO_CLARO}};
+    cExtra.alignment={horizontal:'center',vertical:'middle'}; cExtra.border=borde;
     celda(ws,filaActual,COL_REG,'',{bg:AMARILLO_CLARO,border:borde});
-    ws.getRow(filaActual).height=14; filaActual+=2;
+    ws.getRow(filaActual).height=16; filaActual+=2;
 
     // ── SECCIÓN PLUSES POR DÍA ───────────────────────────────
     const seccionesPlus=[
@@ -1228,11 +1233,13 @@ async function xlsNominas(){
 
     resumenItems.forEach(([label,val,bg])=>{
       celda(ws,filaActual,COL_PROY,label,{bold:true,bg,align:'left',border:borde});
-      celda(ws,filaActual,COL_TOT,val,{bold:true,bg,color:ROJO,border:borde});
-      // Rellenar columnas de días sin tocar COL_TOT
-      for(let d=1;d<=diasDelMes;d++) celda(ws,filaActual,COL_TOT+d,'',{bg,border:borde});
+      ws.mergeCells(filaActual,COL_TOT,filaActual,32);
+      const cVal=ws.getCell(filaActual,COL_TOT);
+      cVal.value=val; cVal.font={name:'Arial',size:14,bold:true,color:{argb:'FF'+ROJO}};
+      cVal.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};
+      cVal.alignment={horizontal:'center',vertical:'middle'}; cVal.border=borde;
       celda(ws,filaActual,COL_REG,'',{bg,border:borde});
-      ws.getRow(filaActual).height=14; filaActual++;
+      ws.getRow(filaActual).height=16; filaActual++;
     });
 
     // ── FIRMA ────────────────────────────────────────────────
