@@ -1073,7 +1073,7 @@ async function xlsNominas(){
 
     // Columnas: col1=proyecto(A), col2=totales(B), col3..N=días, colN+1=Reg
     // Col índices: 1=Proyecto, 2=TOTALES, 3..3+diasDelMes-1=días, última=Reg
-    const COL_PROY=1, COL_TOT=2, COL_REG=2+diasDelMes+1;
+    const COL_PROY=1, COL_TOT=2, COL_REG=COL_TOT+diasDelMes+1;
 
     // ── FILA 1: Cabecera nombre trabajador ──────────────────
     const totalCols=COL_REG;
@@ -1103,7 +1103,7 @@ async function xlsNominas(){
       const esFin=diaSem===0||diaSem===6;
       const esFest=festivos.includes(fecha);
       const bg=esFin||esFest?'FFCCCC':GRIS;
-      celda(ws,3,COL_TOT-1+d,d,{bold:true,bg,border:borde,size:8});
+      celda(ws,3,COL_TOT+d,d,{bold:true,bg,border:borde,size:8});
     }
     celda(ws,3,COL_REG,'Reg.',{bold:true,bg:'333333',color:BLANCO,border:borde});
     ws.getRow(3).height=18;
