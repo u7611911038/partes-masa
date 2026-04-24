@@ -1196,7 +1196,7 @@ async function xlsNominas(){
         const fecha=`${anio}-${mesNum}-${String(d).padStart(2,'0')}`;
         const p=porFecha[fecha];
         const val=p?sec.fn(p):'';
-        const c=ws.getCell(filaActual,COL_TOT-1+d);
+        const c=ws.getCell(filaActual,COL_TOT+d);
         c.value=val||null;
         c.font={name:'Arial',size:8,bold:!!val,color:{argb:'FF'+ROJO}};
         c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+sec.bg}};
@@ -1262,7 +1262,7 @@ async function xlsNominas(){
     // ── ANCHOS DE COLUMNA ────────────────────────────────────
     ws.getColumn(COL_PROY).width=32;
     ws.getColumn(COL_TOT).width=8;
-    for(let d=1;d<=diasDelMes;d++) ws.getColumn(COL_TOT-1+d).width=4.2;
+    for(let d=1;d<=diasDelMes;d++) ws.getColumn(COL_TOT+d).width=4.2;
     ws.getColumn(COL_REG).width=5.5;
 
     // ── CONFIGURACIÓN DE PÁGINA PARA PDF ─────────────────────
