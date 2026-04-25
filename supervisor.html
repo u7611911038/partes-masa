@@ -652,24 +652,20 @@ async function fetchParaExcel(){
   let url=SU+'/rest/v1/partes?select=*,trabajadores(nombre,horas_convenio),partes_obras(*,obras(id,nombre,numero))';
 
   if(vista==='trabajador'){
-    // Filtro por trabajador: mes completo del mes seleccionado
-    const mes=document.getElementById('i-m').value||new Date().toISOString().slice(0,7);
+    const mes=(document.getElementById('i-m')?.value)||new Date().toISOString().slice(0,7);
     const [anio,mesNum]=mes.split('-');
     const ultimoDia=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
     url+=`&fecha=gte.${mes}-01&fecha=lte.${mes}-${String(ultimoDia).padStart(2,'0')}`;
-    // Filtro de trabajador concreto
-    const trabId=document.getElementById('i-t').value;
+    const trabId=document.getElementById('i-t')?.value;
     if(trabId) url+=`&trabajador_id=eq.${trabId}`;
   } else {
-    // Filtro por día: rango exacto de fechas del filtro
-    const f1=document.getElementById('i-f1').value;
-    const f2=document.getElementById('i-f2').value;
+    const f1=document.getElementById('i-f1')?.value;
+    const f2=document.getElementById('i-f2')?.value;
     if(f1) url+=`&fecha=gte.${f1}`;
     if(f2) url+=`&fecha=lte.${f2}`;
   }
 
-  // Filtro de obra si está seleccionado
-  const obraId=document.getElementById('i-o').value;
+  const obraId=document.getElementById('i-o')?.value;
   if(obraId) url+=`&partes_obras.obra_id=eq.${obraId}`;
 
   url+='&order=fecha.asc';
@@ -1094,14 +1090,14 @@ async function xlsNominas(){
   // Calcular rango real de fechas según el filtro activo
   let fechaDesde, fechaHasta, mes, anio, mesNum, diasDelMes, mesNombre;
   if(vista==='trabajador'){
-    mes=document.getElementById('i-m').value||new Date().toISOString().slice(0,7);
+    mes=document.getElementById('i-m')?.value||new Date().toISOString().slice(0,7);
     [anio,mesNum]=mes.split('-');
     diasDelMes=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
     fechaDesde=`${mes}-01`;
     fechaHasta=`${mes}-${String(diasDelMes).padStart(2,'0')}`;
   } else {
-    fechaDesde=document.getElementById('i-f1').value||new Date().toISOString().slice(0,10);
-    fechaHasta=document.getElementById('i-f2').value||fechaDesde;
+    fechaDesde=document.getElementById('i-f1')?.value||new Date().toISOString().slice(0,10);
+    fechaHasta=document.getElementById('i-f2')?.value||fechaDesde;
     // Para la hoja de horas usamos el mes de la fecha inicial
     mes=fechaDesde.slice(0,7);
     [anio,mesNum]=mes.split('-');
