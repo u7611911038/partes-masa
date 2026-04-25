@@ -649,18 +649,30 @@ async function buscar(){
 
 // Consulta directa a Supabase para Excel
 async function fetchParaExcel(){
-  let mes;
+  let url=SU+'/rest/v1/partes?select=*,trabajadores(nombre,horas_convenio),partes_obras(*,obras(id,nombre,numero))';
+
   if(vista==='trabajador'){
-    mes=document.getElementById('i-m').value;
+    // Filtro por trabajador: mes completo del mes seleccionado
+    const mes=document.getElementById('i-m').value||new Date().toISOString().slice(0,7);
+    const [anio,mesNum]=mes.split('-');
+    const ultimoDia=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
+    url+=`&fecha=gte.${mes}-01&fecha=lte.${mes}-${String(ultimoDia).padStart(2,'0')}`;
+    // Filtro de trabajador concreto
+    const trabId=document.getElementById('i-t').value;
+    if(trabId) url+=`&trabajador_id=eq.${trabId}`;
   } else {
+    // Filtro por día: rango exacto de fechas del filtro
     const f1=document.getElementById('i-f1').value;
-    mes=f1?f1.slice(0,7):'';
+    const f2=document.getElementById('i-f2').value;
+    if(f1) url+=`&fecha=gte.${f1}`;
+    if(f2) url+=`&fecha=lte.${f2}`;
   }
-  if(!mes) mes=new Date().toISOString().slice(0,7);
-  const [anio,mesNum]=mes.split('-');
-  const ultimoDia=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
-  const hasta=mes+'-'+String(ultimoDia).padStart(2,'0');
-  const url=SU+'/rest/v1/partes?select=*,trabajadores(nombre),partes_obras(*,obras(id,nombre,numero))&fecha=gte.'+mes+'-01&fecha=lte.'+hasta+'&order=fecha.asc';
+
+  // Filtro de obra si está seleccionado
+  const obraId=document.getElementById('i-o').value;
+  if(obraId) url+=`&partes_obras.obra_id=eq.${obraId}`;
+
+  url+='&order=fecha.asc';
   const res=await fetch(url,{headers:H});
   if(!res.ok){const t=await res.text();throw new Error('HTTP '+res.status+': '+t);}
   const data=await res.json();
@@ -1079,10 +1091,23 @@ async function xlsNominas(){
   try{ partes=await fetchParaExcel(); } catch(e){ alert('Error al obtener datos: '+e.message); return; }
   if(!partes.length){alert('No hay datos para exportar en este período');return;}
 
-  const mes=document.getElementById('i-m').value||document.getElementById('i-f1').value?.slice(0,7)||new Date().toISOString().slice(0,7);
-  const [anio,mesNum]=mes.split('-');
-  const diasDelMes=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
-  const mesNombre=new Date(parseInt(anio),parseInt(mesNum)-1,1).toLocaleString('es-ES',{month:'long'}).toUpperCase();
+  // Calcular rango real de fechas según el filtro activo
+  let fechaDesde, fechaHasta, mes, anio, mesNum, diasDelMes, mesNombre;
+  if(vista==='trabajador'){
+    mes=document.getElementById('i-m').value||new Date().toISOString().slice(0,7);
+    [anio,mesNum]=mes.split('-');
+    diasDelMes=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
+    fechaDesde=`${mes}-01`;
+    fechaHasta=`${mes}-${String(diasDelMes).padStart(2,'0')}`;
+  } else {
+    fechaDesde=document.getElementById('i-f1').value||new Date().toISOString().slice(0,10);
+    fechaHasta=document.getElementById('i-f2').value||fechaDesde;
+    // Para la hoja de horas usamos el mes de la fecha inicial
+    mes=fechaDesde.slice(0,7);
+    [anio,mesNum]=mes.split('-');
+    diasDelMes=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
+  }
+  mesNombre=new Date(parseInt(anio),parseInt(mesNum)-1,1).toLocaleString('es-ES',{month:'long'}).toUpperCase();
 
   const grupos={};
   partes.forEach(p=>{const n=p.trabajadores?.nombre||'?';if(!grupos[n])grupos[n]=[];grupos[n].push(p);});
