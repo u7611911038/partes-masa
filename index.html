@@ -929,10 +929,9 @@ const SUPABASE_URL = 'https://mudtiqquxycgrzisiydu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11ZHRpcXF1eHljZ3J6aXNpeWR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODUxNTgsImV4cCI6MjA5MTc2MTE1OH0.fNKzBcz1wmPccXGy2gWpe78tSzTQj5-z9xYeh2BddoM';
 
 // ─── GEOLOCALIZACIÓN ──────────────────────────────────────
-// Zonas permitidas: MASA Puertollano + casa pruebas Ciudad Real + Rlesa
+// Zonas permitidas: MASA Puertollano + casa pruebas Ciudad Real
 const ZONAS_PERMITIDAS = [
-  { nombre: 'Rlesa',        lat: 38.667512, lon: -4.063133, radio: 150 },
-  { nombre: 'MASA Puertollano',        lat: 38.6795718, lon: -4.0693399, radio: 150 },
+  { nombre: 'MASA Puertollano',        lat: 38.667512, lon: -4.063133, radio: 150 },
   { nombre: 'Pruebas Ciudad Real',     lat: 38.9852451, lon: -3.9211868, radio: 200 },
 ];
 
@@ -1135,6 +1134,21 @@ function seleccionarTurno(turno, el) {
   document.querySelectorAll('.turno-btn').forEach(b => b.classList.remove('activo'));
   el.classList.add('activo');
   turnoSeleccionado = turno;
+
+  // Para turno de noche el parte corresponde al día anterior (empezó ayer)
+  // Ej: sale el sábado a las 7am → entró el viernes → reglas del viernes
+  if (turno === 'noche') {
+    const ayer = new Date(hoy);
+    ayer.setDate(ayer.getDate() - 1);
+    const ayerFecha = ayer.toISOString().split('T')[0];
+    const ayerEsFinde = ayer.getDay() === 0 || ayer.getDay() === 6;
+    esDiaEspecial = ayerEsFinde || festivos.includes(ayerFecha);
+  } else {
+    // Turno de mañana o especial → usar el día actual
+    esDiaEspecial = esFinde || festivos.includes(fechaHoy);
+  }
+
+  verificarPluses();
   calcularHoras();
 }
 
