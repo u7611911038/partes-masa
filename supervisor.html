@@ -816,6 +816,17 @@ async function devolver(id){
 // ─── MODAL EDITAR ─────────────────────────────────────────
 function esFD(fecha){const d=new Date(fecha+'T12:00:00');return d.getDay()===0||d.getDay()===6||festivos.includes(fecha);}
 
+// Para turno noche, el parte corresponde al día anterior (entró ayer)
+function esFDEfectivo(fecha, turno){
+  if(turno==='noche'){
+    const ayer=new Date(fecha+'T12:00:00');
+    ayer.setDate(ayer.getDate()-1);
+    const ayerStr=ayer.toISOString().split('T')[0];
+    return ayer.getDay()===0||ayer.getDay()===6||festivos.includes(ayerStr);
+  }
+  return esFD(fecha);
+}
+
 function abrirModal(id){
   const p=datos.find(x=>x.id==id);
   if(!p){toast('Parte no encontrado, recarga la búsqueda',false);return;}
@@ -856,7 +867,8 @@ function abrirModal(id){
 }
 
 function actualizarInfoHoras(p,total){
-  const esp=esFD(p.fecha);
+  const turnoEdit=document.getElementById('m-turno')?.value||p.turno||'mañana';
+  const esp=esFDEfectivo(p.fecha, turnoEdit);
   const convenio=p._convenio||11;
   let totalEf=total;
   if(total>=12&&convenio===11) totalEf=total-1;
@@ -897,7 +909,8 @@ async function guardar(){
     });
   });
 
-  const esp=esFD(p.fecha);
+  const turnoEdit=document.getElementById('m-turno').value;
+  const esp=esFDEfectivo(p.fecha, turnoEdit);
   // Aplicar descuento 1h convenio 11h si ≥12h apuntadas
   const convenioTrab=p._convenio||11;
   let totalEfectivo=total;
@@ -1052,7 +1065,7 @@ async function xlsObras(){
   partes.forEach(p=>{
     const obs=p.partes_obras||[];
     let acum=0;
-    const esp=esFD(p.fecha);
+    const esp=esFDEfectivo(p.fecha, p.turno);
     obs.forEach(o=>{
       const h=o.horas||0;
       let hN=0,hE=0;
