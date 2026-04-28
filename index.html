@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>MASA — Partes de Horas</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -811,9 +814,13 @@
           <span class="horas">8h</span>
           <span class="rango">07:00 — 15:00</span>
         </div>
-        <div class="turno-btn" onclick="seleccionarTurno('noche', this)">
+        <div class="turno-btn" onclick="seleccionarTurno('dia12', this)">
           <span class="horas">12h</span>
           <span class="rango">07:00 — 19:00</span>
+        </div>
+        <div class="turno-btn" onclick="seleccionarTurno('noche', this)">
+          <span class="horas">12h 🌙</span>
+          <span class="rango">19:00 — 07:00</span>
         </div>
       </div>
     </div>
@@ -931,9 +938,9 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // ─── GEOLOCALIZACIÓN ──────────────────────────────────────
 // Zonas permitidas: MASA Puertollano + casa pruebas Ciudad Real
 const ZONAS_PERMITIDAS = [
-  { nombre: 'RLESA',   lat: 38.667512,  lon: -4.063133,  radio: 150 },
-  { nombre: 'MASA Puertollano', lat: 38.6795718, lon: -4.0693399, radio: 150 },
-  { nombre: 'Pruebas Ciudad Real',     lat: 38.9852451, lon: -3.9211868, radio: 200 },
+  { nombre: 'RLESA',                   lat: 38.667512,   lon: -4.063133,   radio: 150 },
+  { nombre: 'MASA Puertollano',        lat: 38.6795718,  lon: -4.0693399,  radio: 150 },
+  { nombre: 'Pruebas Ciudad Real',     lat: 38.9852451,  lon: -3.9211868,  radio: 200 },
 ];
 
 function distanciaMetros(lat1, lon1, lat2, lon2) {
@@ -1020,7 +1027,7 @@ let esDiaEspecial = false; // fin de semana o festivo
 let obrasLineas = [];
 let contadorObras = 0;
 
-// FECHA
+// FECHA — usar hora LOCAL para evitar desfase con UTC
 const hoy = new Date();
 const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1029,7 +1036,8 @@ const esFinde = hoy.getDay() === 0 || hoy.getDay() === 6;
 document.getElementById('fecha-display').innerHTML =
   `${diasSemana[hoy.getDay()]}<br>${hoy.getDate()} ${meses[hoy.getMonth()]} ${hoy.getFullYear()}`;
 
-const fechaHoy = hoy.toISOString().split('T')[0];
+// Construir fecha en hora local (no UTC) para evitar que a las 7am España diga que es el día anterior
+const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
 
 // CARGA INICIAL
 async function cargarDatos() {
@@ -1136,16 +1144,15 @@ function seleccionarTurno(turno, el) {
   el.classList.add('activo');
   turnoSeleccionado = turno;
 
-  // Para turno de noche el parte corresponde al día anterior (empezó ayer)
-  // Ej: sale el sábado a las 7am → entró el viernes → reglas del viernes
+  // Solo el turno de noche real (19:00-07:00) usa el día anterior
   if (turno === 'noche') {
     const ayer = new Date(hoy);
     ayer.setDate(ayer.getDate() - 1);
-    const ayerFecha = ayer.toISOString().split('T')[0];
+    const ayerFecha = `${ayer.getFullYear()}-${String(ayer.getMonth()+1).padStart(2,'0')}-${String(ayer.getDate()).padStart(2,'0')}`;
     const ayerEsFinde = ayer.getDay() === 0 || ayer.getDay() === 6;
     esDiaEspecial = ayerEsFinde || festivos.includes(ayerFecha);
   } else {
-    // Turno de mañana o especial → usar el día actual
+    // Turno mañana (8h) y día largo (12h) → usar el día actual
     esDiaEspecial = esFinde || festivos.includes(fechaHoy);
   }
 
