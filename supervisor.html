@@ -816,12 +816,12 @@ async function devolver(id){
 // ─── MODAL EDITAR ─────────────────────────────────────────
 function esFD(fecha){const d=new Date(fecha+'T12:00:00');return d.getDay()===0||d.getDay()===6||festivos.includes(fecha);}
 
-// Para turno noche, el parte corresponde al día anterior (entró ayer)
+// Para turno noche real (19:00-07:00), el parte corresponde al día anterior
 function esFDEfectivo(fecha, turno){
   if(turno==='noche'){
     const ayer=new Date(fecha+'T12:00:00');
     ayer.setDate(ayer.getDate()-1);
-    const ayerStr=ayer.toISOString().split('T')[0];
+    const ayerStr=`${ayer.getFullYear()}-${String(ayer.getMonth()+1).padStart(2,'0')}-${String(ayer.getDate()).padStart(2,'0')}`;
     return ayer.getDay()===0||ayer.getDay()===6||festivos.includes(ayerStr);
   }
   return esFD(fecha);
@@ -1837,8 +1837,8 @@ async function enviarParteJefe(){
 
 // ─── PARTE MANUAL (DESCANSO / SALIENTE) ──────────────────
 const ZONAS_SUPERVISOR = [
-  { nombre: 'RLESA',   lat: 38.667512,  lon: -4.063133,  radio: 150 },
-  { nombre: 'MASA Puertollano', lat: 38.6795718, lon: -4.0693399, radio: 150 },
+  { nombre: 'MASA Puertollano',   lat: 38.667512,  lon: -4.063133,  radio: 150 },
+  { nombre: 'MASA Puertollano 2', lat: 38.6795718, lon: -4.0693399, radio: 150 },
 ];
 
 function distSup(lat1,lon1,lat2,lon2){
