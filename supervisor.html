@@ -232,6 +232,7 @@
           <button class="btn bazul" onclick="xlsNominas()">⬇ NÓMINAS</button>
           <button class="btn" style="background:#8e44ad;color:white" onclick="abrirParteManual()" id="btn-parte-manual">+ PARTE MANUAL</button>
           <button class="btn" style="background:#16a085;color:white" onclick="abrirParteJefe()" id="btn-parte-jefe">+ PARTE JEFE</button>
+          <button class="btn" style="background:#e67e22;color:white" onclick="abrirAsistencia()" id="btn-asistencia">👥 ASISTENCIA</button>
         </div>
       </div>
       <div id="resultados"></div>
@@ -445,6 +446,24 @@
   </div>
 </div>
 
+<!-- MODAL ASISTENCIA -->
+<div class="modal" id="modal-asistencia">
+  <div class="mc" style="max-width:540px">
+    <div class="mh">
+      <div class="mt" style="color:#e67e22">👥 CONTROL DE ASISTENCIA</div>
+      <button class="bx" onclick="document.getElementById('modal-asistencia').classList.remove('on')">×</button>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:20px">
+      <div style="flex:1">
+        <label class="cl2">Selecciona el día</label>
+        <input type="date" class="ci" id="asi-fecha"/>
+      </div>
+      <button class="btn" style="background:#e67e22;color:white;height:38px" onclick="consultarAsistencia()">CONSULTAR</button>
+    </div>
+    <div id="asi-resultado"></div>
+  </div>
+</div>
+
 <!-- MODAL EDITAR -->
 <div class="modal" id="modal">
   <div class="mc">
@@ -530,6 +549,7 @@ function doLogin(){
     document.getElementById('main-tabs').style.display=rol==='jefe'?'flex':'none';
     document.getElementById('btn-parte-manual').style.display=rol==='supervisor'?'inline-block':'none';
     document.getElementById('btn-parte-jefe').style.display=rol==='jefe'?'inline-block':'none';
+    document.getElementById('btn-asistencia').style.display=rol==='jefe'?'inline-block':'none';
     // Jefe de obra ve por defecto los validados por supervisor
     // Supervisor ve por defecto los pendientes
     document.getElementById('s-e').value=rol==='jefe'?'supervisor':'pendiente';
@@ -1978,6 +1998,72 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(pmH) pmH.addEventListener('input',actualizarInfoManual);
   if(pmF) pmF.addEventListener('change',actualizarInfoManual);
 });
+
+// ─── CONTROL DE ASISTENCIA ───────────────────────────────
+function abrirAsistencia(){
+  const hoy=new Date();
+  const fechaHoy=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+  document.getElementById('asi-fecha').value=fechaHoy;
+  document.getElementById('asi-resultado').innerHTML='';
+  document.getElementById('modal-asistencia').classList.add('on');
+}
+
+async function consultarAsistencia(){
+  const fecha=document.getElementById('asi-fecha').value;
+  if(!fecha){toast('Selecciona una fecha',false);return;}
+
+  const res=document.getElementById('asi-resultado');
+  res.innerHTML='<div style="text-align:center;padding:20px;color:var(--txt2)">Consultando...</div>';
+
+  try{
+    // Obtener partes del día
+    const rPartes=await fetch(SU+'/rest/v1/partes?select=trabajador_id&fecha=eq.'+fecha,{headers:H});
+    const partes=await rPartes.json();
+    const conParte=new Set(partes.map(p=>p.trabajador_id));
+
+    // Cruzar con trabajadores activos
+    const sinParte=trabs.filter(t=>!conParte.has(t.id));
+    const total=trabs.length;
+    const fichados=total-sinParte.length;
+
+    // Formatear fecha para mostrar
+    const fechaDisplay=new Date(fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+    let html=`
+      <div style="text-align:center;margin-bottom:16px;font-size:13px;color:var(--txt2);text-transform:capitalize">${fechaDisplay}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+        <div style="background:#eafaf1;border:1px solid #a9dfbf;border-radius:8px;padding:14px;text-align:center">
+          <div style="font-size:32px;font-weight:900;color:#27ae60;font-family:'Barlow Condensed',sans-serif">${fichados}</div>
+          <div style="font-size:12px;color:#1e8449;font-weight:600">HAN FICHADO</div>
+        </div>
+        <div style="background:#fef0e7;border:1px solid #f5cba7;border-radius:8px;padding:14px;text-align:center">
+          <div style="font-size:32px;font-weight:900;color:#e67e22;font-family:'Barlow Condensed',sans-serif">${sinParte.length}</div>
+          <div style="font-size:12px;color:#d35400;font-weight:600">SIN PARTE</div>
+        </div>
+      </div>`;
+
+    if(sinParte.length===0){
+      html+=`<div style="background:#eafaf1;border:1px solid #a9dfbf;border-radius:8px;padding:16px;text-align:center;color:#1e8449;font-weight:700">
+        ✅ Todos los trabajadores han generado su parte
+      </div>`;
+    } else {
+      html+=`<div style="font-size:12px;font-weight:700;color:var(--rojo);letter-spacing:1px;margin-bottom:8px">SIN PARTE (${sinParte.length}):</div>`;
+      html+=`<div style="border:1px solid var(--borde);border-radius:8px;overflow:hidden">`;
+      sinParte.sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach((t,i)=>{
+        const bg=i%2===0?'var(--fondo)':'white';
+        html+=`<div style="padding:10px 14px;background:${bg};font-size:13px;display:flex;align-items:center;gap:8px">
+          <span style="color:var(--rojo);font-weight:700">✗</span>
+          <span>${t.nombre}</span>
+        </div>`;
+      });
+      html+=`</div>`;
+    }
+
+    res.innerHTML=html;
+  } catch(e){
+    res.innerHTML=`<div style="color:var(--rojo);text-align:center;padding:16px">Error al consultar: ${e.message}</div>`;
+  }
+}
 
 function toast(msg,ok){
   const t=document.getElementById('toast');
