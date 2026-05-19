@@ -1046,23 +1046,10 @@ async function guardar(){
   if(!r1.ok){
     const errTxt=await r1.text();
     console.error('Error parte principal:',errTxt);
-    // Si el error es por campo dieta inexistente, reintentar sin dieta
-    if(errTxt.includes('dieta')){
-      const r1b=await fetch(`${SU}/rest/v1/partes?id=eq.${id}`,{
-        method:'PATCH',
-        headers:{...H,'Prefer':'return=minimal'},
-        body:JSON.stringify({
-          turno:document.getElementById('m-turno').value,
-          llamadas:lm, reten:ret,
-          plus_nocturnidad:pN, plus_turnicidad:pT, plus_entrada:pE, plus_taller:pTa,
-          total_horas:total, horas_normales:hn, horas_extra:he,
-          validado_jefe_equipo:false, validado_jefe_obra:false
-        })
-      });
-      if(!r1b.ok){toast('Error al guardar el parte',false);return;}
-    } else {
-      toast('Error al guardar el parte',false);return;
-    }
+    let errMsg='Error al guardar el parte';
+    try{ const errJson=JSON.parse(errTxt); errMsg=errJson.message||errJson.details||errMsg; } catch(e){}
+    toast(errMsg,false);
+    return;
   }
 
   let errObra=false;
