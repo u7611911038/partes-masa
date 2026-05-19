@@ -1043,7 +1043,27 @@ async function guardar(){
     })
   });
 
-  if(!r1.ok){toast('Error al guardar el parte',false);return;}
+  if(!r1.ok){
+    const errTxt=await r1.text();
+    console.error('Error parte principal:',errTxt);
+    // Si el error es por campo dieta inexistente, reintentar sin dieta
+    if(errTxt.includes('dieta')){
+      const r1b=await fetch(`${SU}/rest/v1/partes?id=eq.${id}`,{
+        method:'PATCH',
+        headers:{...H,'Prefer':'return=minimal'},
+        body:JSON.stringify({
+          turno:document.getElementById('m-turno').value,
+          llamadas:lm, reten:ret,
+          plus_nocturnidad:pN, plus_turnicidad:pT, plus_entrada:pE, plus_taller:pTa,
+          total_horas:total, horas_normales:hn, horas_extra:he,
+          validado_jefe_equipo:false, validado_jefe_obra:false
+        })
+      });
+      if(!r1b.ok){toast('Error al guardar el parte',false);return;}
+    } else {
+      toast('Error al guardar el parte',false);return;
+    }
+  }
 
   let errObra=false;
 
@@ -1057,14 +1077,19 @@ async function guardar(){
     if(!r2.ok) errObra=true;
   }
 
-  // INSERT obras nuevas
-  if(obsNuevas.length){
+  // INSERT obras nuevas (solo si tienen obra seleccionada y horas > 0)
+  const obsNuevasValidas=obsNuevas.filter(o=>o.obra_id&&!isNaN(o.obra_id)&&o.horas>0);
+  if(obsNuevasValidas.length){
     const r3=await fetch(`${SU}/rest/v1/partes_obras`,{
       method:'POST',
       headers:{...H,'Prefer':'return=minimal'},
-      body:JSON.stringify(obsNuevas)
+      body:JSON.stringify(obsNuevasValidas)
     });
-    if(!r3.ok) errObra=true;
+    if(!r3.ok){
+      const errTxt=await r3.text();
+      console.error('Error insertar obras:',errTxt);
+      errObra=true;
+    }
   }
 
   // DELETE obras eliminadas
