@@ -911,6 +911,33 @@
       </div>
     </div>
 
+    <!-- DIETA -->
+    <div class="seccion">
+      <div class="seccion-titulo">Dieta por desplazamiento</div>
+      <div class="pluses-grid">
+        <div class="plus-item" id="dieta-ninguna" onclick="seleccionarDieta('ninguna')" style="border:2px solid var(--rojo)">
+          <div class="plus-check" id="check-dieta-ninguna" style="background:var(--rojo)"></div>
+          <div>
+            <div class="plus-nombre">Sin dieta</div>
+          </div>
+        </div>
+        <div class="plus-item" id="dieta-media" onclick="seleccionarDieta('media')">
+          <div class="plus-check" id="check-dieta-media"></div>
+          <div>
+            <div class="plus-nombre">🍽️ Media dieta</div>
+            <div style="font-size:11px;color:var(--gris-texto)">Desplazamiento 1 día</div>
+          </div>
+        </div>
+        <div class="plus-item" id="dieta-completa" onclick="seleccionarDieta('completa')">
+          <div class="plus-check" id="check-dieta-completa"></div>
+          <div>
+            <div class="plus-nombre">🍽️🍽️ Dieta completa</div>
+            <div style="font-size:11px;color:var(--gris-texto)">Desplazamiento varios días</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ENVIAR -->
     <button class="btn-enviar" id="btn-enviar" onclick="enviarParte()">
       ENVIAR PARTE
@@ -1023,6 +1050,7 @@ let retenSeleccionado = 'ninguno';
 let retenAbierto = false;
 let llamadas = 0;
 let pluses = { nocturnidad: false, turnicidad: false, entrada: false, taller: false };
+let dietaSeleccionada = 'ninguna';
 let esDiaEspecial = false; // fin de semana o festivo
 let obrasLineas = [];
 let contadorObras = 0;
@@ -1271,6 +1299,21 @@ function toggleReten() {
   }
 }
 
+function seleccionarDieta(tipo) {
+  dietaSeleccionada = tipo;
+  ['ninguna','media','completa'].forEach(t => {
+    const el = document.getElementById(`dieta-${t}`);
+    const check = document.getElementById(`check-dieta-${t}`);
+    if (t === tipo) {
+      el.style.borderColor = 'var(--rojo)';
+      check.style.background = 'var(--rojo)';
+    } else {
+      el.style.borderColor = '';
+      check.style.background = '';
+    }
+  });
+}
+
 function seleccionarReten(tipo, el) {
   retenSeleccionado = tipo;
   document.querySelectorAll('.reten-btn').forEach(b => b.classList.remove('activo'));
@@ -1331,6 +1374,7 @@ async function enviarParte() {
         plus_turnicidad: pluses.turnicidad,
         plus_entrada: pluses.entrada,
         plus_taller: pluses.taller,
+        dieta: dietaSeleccionada,
         reten: retenSeleccionado,
         llamadas: llamadas,
         total_horas: totalHoras,
@@ -1388,6 +1432,8 @@ function resetFormulario() {
   retenAbierto = false;
   llamadas = 0;
   pluses = { nocturnidad: false, turnicidad: false, entrada: false, taller: false };
+  dietaSeleccionada = 'ninguna';
+  seleccionarDieta('ninguna');
   obrasLineas = [];
   contadorObras = 0;
 
