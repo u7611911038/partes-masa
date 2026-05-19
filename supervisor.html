@@ -360,9 +360,25 @@
         <label class="cl2">Trabajador</label>
         <select class="ci" id="pj-trabajador"><option value="">— Selecciona —</option></select>
       </div>
-      <div>
+      <div id="pj-fecha-simple">
         <label class="cl2">Fecha del parte</label>
         <input type="date" class="ci" id="pj-fecha"/>
+      </div>
+    </div>
+    <!-- Rango de fechas solo para vacaciones y médico -->
+    <div id="pj-fecha-rango" style="display:none;margin-top:12px">
+      <div class="g2">
+        <div>
+          <label class="cl2">Fecha inicio</label>
+          <input type="date" class="ci" id="pj-fecha-ini"/>
+        </div>
+        <div>
+          <label class="cl2">Fecha fin</label>
+          <input type="date" class="ci" id="pj-fecha-fin"/>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:6px">
+        ℹ️ Solo se crearán partes en días laborables (lunes a viernes, sin festivos)
       </div>
     </div>
 
@@ -446,6 +462,38 @@
   </div>
 </div>
 
+<!-- MODAL BAJA TRABAJADOR -->
+<div class="modal" id="modal-baja">
+  <div class="mc" style="max-width:420px">
+    <div class="mh">
+      <div class="mt" style="color:var(--rojo)">DAR DE BAJA</div>
+      <button class="bx" onclick="document.getElementById('modal-baja').classList.remove('on')">×</button>
+    </div>
+    <input type="hidden" id="baja-id"/>
+    <p style="font-size:14px;color:var(--txt2);margin-bottom:16px">
+      Selecciona el motivo de baja de <b id="baja-nombre" style="color:var(--dark)"></b>:
+    </p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+      <button class="btn-motivo-baja" data-motivo="vacaciones" onclick="selMotivoBaja(this)"
+        style="padding:12px;border:2px solid var(--borde);border-radius:8px;background:white;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left">
+        🏖️ Vacaciones
+      </button>
+      <button class="btn-motivo-baja" data-motivo="medico" onclick="selMotivoBaja(this)"
+        style="padding:12px;border:2px solid var(--borde);border-radius:8px;background:white;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left">
+        🏥 Médico / Baja médica
+      </button>
+      <button class="btn-motivo-baja" data-motivo="baja_empresa" onclick="selMotivoBaja(this)"
+        style="padding:12px;border:2px solid var(--borde);border-radius:8px;background:white;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left">
+        🏢 Baja de empresa
+      </button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--borde);padding-top:16px">
+      <button class="btn bgris" onclick="document.getElementById('modal-baja').classList.remove('on')">Cancelar</button>
+      <button class="btn brojo" onclick="ejecutarBaja()">CONFIRMAR BAJA</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL ASISTENCIA -->
 <div class="modal" id="modal-asistencia">
   <div class="mc" style="max-width:540px">
@@ -514,6 +562,15 @@
       <div class="st">Obras y horas</div>
       <div class="iinfo" id="m-info"></div>
       <div id="m-obras"></div>
+      <button id="m-btn-add-obra" class="btn bgris" style="margin-top:8px;font-size:12px">+ Añadir obra</button>
+    </div>
+    <div class="sm">
+      <div class="st">Dieta por desplazamiento</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="rp" data-d="ninguna" onclick="selDieta(this)" style="flex:1">Sin dieta</div>
+        <div class="rp" data-d="media" onclick="selDieta(this)" style="flex:1">🍽️ Media dieta</div>
+        <div class="rp" data-d="completa" onclick="selDieta(this)" style="flex:1">🍽️🍽️ Dieta completa</div>
+      </div>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;border-top:1px solid var(--borde);padding-top:16px">
       <button class="btn bgris" onclick="cerrarModal()">Cancelar</button>
@@ -862,28 +919,44 @@ function abrirModal(id){
   document.getElementById('m-ln').textContent=lm;
 
   document.querySelectorAll('.pp').forEach(pill=>pill.classList.toggle('on',!!p['plus_'+pill.dataset.p]));
-  document.querySelectorAll('.rp').forEach(pill=>pill.classList.toggle('on',pill.dataset.r===(p.reten||'ninguno')));
+  document.querySelectorAll('.rp[data-r]').forEach(pill=>pill.classList.toggle('on',pill.dataset.r===(p.reten||'ninguno')));
+  document.querySelectorAll('.rp[data-d]').forEach(pill=>pill.classList.toggle('on',pill.dataset.d===(p.dieta||'ninguna')));
 
   actualizarInfoHoras(p,(p.partes_obras||[]).reduce((s,o)=>s+(o.horas||0),0));
 
   const cont=document.getElementById('m-obras');
   cont.innerHTML='';
   (p.partes_obras||[]).forEach(o=>{
-    const d=document.createElement('div');
-    d.className='oc';d.dataset.pid=o.id;
-    d.innerHTML=`<div class="on2">📁 ${o.obras?.nombre||'—'}</div>
-      <div class="of">
-        <div><label class="cl2">Horas en esta obra</label>
-          <input type="number" class="ci eh" value="${o.horas||0}" min="0.5" max="24" step="0.5"
-            oninput="recalcModal('${p.id}')"/></div>
-        <div><label class="cl2">Cambiar a obra</label>
-          <select class="ci eo">${obras.map(ob=>`<option value="${ob.id}"${ob.id==o.obra_id?' selected':''}>${ob.nombre}</option>`).join('')}</select></div>
-      </div>
-      <textarea class="ocom" placeholder="Comentario...">${o.comentarios||''}</textarea>`;
-    cont.appendChild(d);
+    cont.appendChild(crearFilaObra(p.id, o.id, o.obra_id, o.horas, o.comentarios));
   });
+  // Botón añadir obra
+  document.getElementById('m-btn-add-obra').onclick=()=>{
+    cont.appendChild(crearFilaObra(p.id, 'new_'+Date.now(), '', 0, ''));
+    recalcModal(p.id);
+  };
 
   document.getElementById('modal').classList.add('on');
+}
+
+function crearFilaObra(pid, oid, obraId, horas, comentario){
+  const d=document.createElement('div');
+  d.className='oc'; d.dataset.pid=oid;
+  d.dataset.esNueva=String(oid).startsWith('new_')?'1':'0';
+  d.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="on2">📁 Obra</div>
+      <button onclick="this.closest('.oc').remove();recalcModal('${pid}')"
+        style="background:#fee;border:1px solid #fcc;color:var(--rojo);border-radius:5px;padding:2px 8px;cursor:pointer;font-size:13px;font-weight:700">✕ Eliminar</button>
+    </div>
+    <div class="of">
+      <div><label class="cl2">Horas en esta obra</label>
+        <input type="number" class="ci eh" value="${horas||0}" min="0.5" max="24" step="0.5"
+          oninput="recalcModal('${pid}')"/></div>
+      <div><label class="cl2">Proyecto / Obra</label>
+        <select class="ci eo">${obras.map(ob=>`<option value="${ob.id}"${ob.id==obraId?' selected':''}>${ob.numero?ob.numero+' — ':''}${ob.nombre}</option>`).join('')}</select></div>
+    </div>
+    <textarea class="ocom" placeholder="Comentario...">${comentario||''}</textarea>`;
+  return d;
 }
 
 function actualizarInfoHoras(p,total){
@@ -905,7 +978,8 @@ function recalcModal(pid){
   actualizarInfoHoras(p,total);
 }
 
-function selR(el){document.querySelectorAll('.rp').forEach(p=>p.classList.remove('on'));el.classList.add('on');}
+function selR(el){document.querySelectorAll('.rp[data-r]').forEach(p=>p.classList.remove('on'));el.classList.add('on');}
+function selDieta(el){document.querySelectorAll('.rp[data-d]').forEach(p=>p.classList.remove('on'));el.classList.add('on');}
 function adjL(d){lm=Math.max(0,lm+d);document.getElementById('m-l').value=lm;document.getElementById('m-ln').textContent=lm;}
 function cerrarModal(){document.getElementById('modal').classList.remove('on');}
 
@@ -917,17 +991,28 @@ async function guardar(){
 
   const cards2=document.querySelectorAll('.oc');
   let total=0;
-  const obsData=[];
+  const obsExistentes=[];
+  const obsNuevas=[];
+  // IDs de obras originales del parte para detectar eliminadas
+  const p2=datos.find(x=>x.id==id);
+  const idsOriginales=new Set((p2?.partes_obras||[]).map(o=>String(o.id)));
+  const idsEnModal=new Set();
+
   cards2.forEach(c=>{
     const h=parseFloat(c.querySelector('.eh').value)||0;
+    const obraId=parseInt(c.querySelector('.eo').value);
+    const com=c.querySelector('.ocom').value||null;
     total+=h;
-    obsData.push({
-      id:c.dataset.pid,
-      obra_id:parseInt(c.querySelector('.eo').value),
-      horas:h,
-      comentarios:c.querySelector('.ocom').value||null
-    });
+    if(c.dataset.esNueva==='1'){
+      obsNuevas.push({parte_id:parseInt(id), obra_id:obraId, horas:h, comentarios:com});
+    } else {
+      idsEnModal.add(c.dataset.pid);
+      obsExistentes.push({id:c.dataset.pid, obra_id:obraId, horas:h, comentarios:com});
+    }
   });
+
+  // Obras eliminadas = estaban en original pero no en modal
+  const idsEliminar=[...idsOriginales].filter(id=>!idsEnModal.has(id));
 
   const turnoEdit=document.getElementById('m-turno').value;
   const esp=esFDEfectivo(p.fecha, turnoEdit);
@@ -942,7 +1027,8 @@ async function guardar(){
   const pT=document.querySelector('[data-p="turnicidad"]').classList.contains('on');
   const pE=document.querySelector('[data-p="entrada"]').classList.contains('on');
   const pTa=document.querySelector('[data-p="taller"]').classList.contains('on');
-  const ret=document.querySelector('.rp.on')?.dataset.r||'ninguno';
+  const ret=document.querySelector('.rp.on[data-r]')?.dataset.r||'ninguno';
+  const dieta=document.querySelector('.rp.on[data-d]')?.dataset.d||'ninguna';
 
   // UPDATE parte principal
   const r1=await fetch(`${SU}/rest/v1/partes?id=eq.${id}`,{
@@ -950,7 +1036,7 @@ async function guardar(){
     headers:{...H,'Prefer':'return=minimal'},
     body:JSON.stringify({
       turno:document.getElementById('m-turno').value,
-      llamadas:lm, reten:ret,
+      llamadas:lm, reten:ret, dieta,
       plus_nocturnidad:pN, plus_turnicidad:pT, plus_entrada:pE, plus_taller:pTa,
       total_horas:total, horas_normales:hn, horas_extra:he,
       validado_jefe_equipo:false, validado_jefe_obra:false
@@ -959,15 +1045,34 @@ async function guardar(){
 
   if(!r1.ok){toast('Error al guardar el parte',false);return;}
 
-  // UPDATE cada obra
   let errObra=false;
-  for(const o of obsData){
+
+  // UPDATE obras existentes
+  for(const o of obsExistentes){
     const r2=await fetch(`${SU}/rest/v1/partes_obras?id=eq.${o.id}`,{
       method:'PATCH',
       headers:{...H,'Prefer':'return=minimal'},
       body:JSON.stringify({obra_id:o.obra_id,horas:o.horas,comentarios:o.comentarios})
     });
     if(!r2.ok) errObra=true;
+  }
+
+  // INSERT obras nuevas
+  if(obsNuevas.length){
+    const r3=await fetch(`${SU}/rest/v1/partes_obras`,{
+      method:'POST',
+      headers:{...H,'Prefer':'return=minimal'},
+      body:JSON.stringify(obsNuevas)
+    });
+    if(!r3.ok) errObra=true;
+  }
+
+  // DELETE obras eliminadas
+  for(const oid of idsEliminar){
+    const r4=await fetch(`${SU}/rest/v1/partes_obras?id=eq.${oid}`,{
+      method:'DELETE', headers:H
+    });
+    if(!r4.ok) errObra=true;
   }
 
   cerrarModal();
@@ -1446,6 +1551,8 @@ async function xlsNominas(){
       ['PLUS TALLER',     ptsOrdenados.filter(p=>p.plus_taller).length+' días',                   AMARILLO_CLARO],
       ['NOCTURNIDAD',     ptsOrdenados.filter(p=>p.plus_nocturnidad).length+' días',              GRIS],
       ['TURNICIDAD',      ptsOrdenados.filter(p=>p.plus_turnicidad).length+' días',               GRIS],
+      ['MEDIA DIETA',     ptsOrdenados.filter(p=>p.dieta==='media').length+' días',               AMARILLO_CLARO],
+      ['DIETA COMPLETA',  ptsOrdenados.filter(p=>p.dieta==='completa').length+' días',            AMARILLO_CLARO],
     ];
 
     resumenItems.forEach(([label,val,bg])=>{
@@ -1696,6 +1803,10 @@ function selTipoJefe(tipo){
     if(info) info.style.display=t===tipo?'block':'none';
   });
   document.getElementById('campos-olvido').style.display=tipo==='olvido'?'block':'none';
+  // Mostrar rango de fechas para vacaciones y médico
+  const esRango=tipo==='vacaciones'||tipo==='medico';
+  document.getElementById('pj-fecha-simple').style.display=esRango?'none':'block';
+  document.getElementById('pj-fecha-rango').style.display=esRango?'block':'none';
 }
 
 function pjAddObra(){
@@ -1756,34 +1867,58 @@ async function enviarParteJefe(){
   if(!trabId){toast('Selecciona un trabajador',false);return;}
   if(!fecha){toast('Selecciona una fecha',false);return;}
 
-  // ── VACACIONES / MÉDICO ──────────────────────────────────
+  // ── VACACIONES / MÉDICO — por rango de fechas ────────────
   if(tipoParteJefe==='vacaciones'||tipoParteJefe==='medico'){
+    const fechaIni=document.getElementById('pj-fecha-ini').value;
+    const fechaFin=document.getElementById('pj-fecha-fin').value;
+    if(!fechaIni||!fechaFin){toast('Selecciona fecha inicio y fin',false);return;}
+    if(fechaFin<fechaIni){toast('La fecha fin debe ser posterior a la fecha inicio',false);return;}
+
     const etiqueta=tipoParteJefe==='vacaciones'?'VACACIONES':'MEDICO';
-    try{
-      const r=await fetch(SU+'/rest/v1/partes',{
-        method:'POST',
-        headers:{...H,'Prefer':'return=representation'},
-        body:JSON.stringify({
-          trabajador_id:parseInt(trabId),
-          fecha,
-          turno:'especial',
-          plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,
-          reten:'ninguno',llamadas:0,
-          total_horas:0,horas_normales:0,horas_extra:0,
-          tipo_incidencia:etiqueta,
-          validado_jefe_equipo:true,
-          validado_jefe_obra:true
-        })
-      });
-      if(!r.ok){
-        const err=await r.json();
-        if(err.code==='23505'){toast('Ya existe un parte para este trabajador en esa fecha',false);return;}
-        throw new Error('Error al crear parte');
+
+    // Generar todos los días laborables del rango
+    const diasLaborables=[];
+    const cursor=new Date(fechaIni+'T12:00:00');
+    const fin=new Date(fechaFin+'T12:00:00');
+    while(cursor<=fin){
+      const diaSem=cursor.getDay();
+      const fechaStr=`${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}-${String(cursor.getDate()).padStart(2,'0')}`;
+      // Solo lunes a viernes y no festivos
+      if(diaSem>=1&&diaSem<=5&&!festivos.includes(fechaStr)){
+        diasLaborables.push(fechaStr);
       }
-      cerrarParteJefe();
-      toast(`Parte ${etiqueta} creado correctamente ✓`,true);
-      buscar();
-    } catch(e){ toast('Error: '+e.message,false); }
+      cursor.setDate(cursor.getDate()+1);
+    }
+
+    if(!diasLaborables.length){toast('No hay días laborables en el rango seleccionado',false);return;}
+
+    let errores=0;
+    for(const fecha of diasLaborables){
+      try{
+        const r=await fetch(SU+'/rest/v1/partes',{
+          method:'POST',
+          headers:{...H,'Prefer':'return=minimal'},
+          body:JSON.stringify({
+            trabajador_id:parseInt(trabId),
+            fecha,
+            turno:'especial',
+            plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,
+            reten:'ninguno',llamadas:0,
+            total_horas:0,horas_normales:0,horas_extra:0,
+            tipo_incidencia:etiqueta,
+            dieta:'ninguna',
+            validado_jefe_equipo:true,
+            validado_jefe_obra:true
+          })
+        });
+        if(!r.ok) errores++;
+      } catch(e){ errores++; }
+    }
+
+    cerrarParteJefe();
+    if(errores>0) toast(`${diasLaborables.length-errores} partes creados (${errores} errores — puede que ya existan)`,false);
+    else toast(`${diasLaborables.length} partes de ${etiqueta} creados ✓`,true);
+    buscar();
     return;
   }
 
@@ -2016,17 +2151,12 @@ async function consultarAsistencia(){
   res.innerHTML='<div style="text-align:center;padding:20px;color:var(--txt2)">Consultando...</div>';
 
   try{
-    // Obtener partes del día
     const rPartes=await fetch(SU+'/rest/v1/partes?select=trabajador_id&fecha=eq.'+fecha,{headers:H});
     const partes=await rPartes.json();
     const conParte=new Set(partes.map(p=>p.trabajador_id));
-
-    // Cruzar con trabajadores activos
     const sinParte=trabs.filter(t=>!conParte.has(t.id));
     const total=trabs.length;
     const fichados=total-sinParte.length;
-
-    // Formatear fecha para mostrar
     const fechaDisplay=new Date(fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
     let html=`
@@ -2047,21 +2177,61 @@ async function consultarAsistencia(){
         ✅ Todos los trabajadores han generado su parte
       </div>`;
     } else {
-      html+=`<div style="font-size:12px;font-weight:700;color:var(--rojo);letter-spacing:1px;margin-bottom:8px">SIN PARTE (${sinParte.length}):</div>`;
+      html+=`<div style="font-size:12px;font-weight:700;color:var(--rojo);letter-spacing:1px;margin-bottom:8px">SIN PARTE (${sinParte.length}) — pulsa ✕ para dar de baja:</div>`;
       html+=`<div style="border:1px solid var(--borde);border-radius:8px;overflow:hidden">`;
       sinParte.sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach((t,i)=>{
         const bg=i%2===0?'var(--fondo)':'white';
-        html+=`<div style="padding:10px 14px;background:${bg};font-size:13px;display:flex;align-items:center;gap:8px">
-          <span style="color:var(--rojo);font-weight:700">✗</span>
-          <span>${t.nombre}</span>
+        html+=`<div style="padding:8px 14px;background:${bg};font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--rojo);font-weight:700">✗</span>
+            <span>${t.nombre}</span>
+          </span>
+          <button onclick="confirmarBaja(${t.id},'${t.nombre.replace(/'/g,"\\\'")}')"
+            style="background:#fee;border:1px solid #fcc;color:var(--rojo);border-radius:5px;padding:2px 10px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">
+            ✕ Dar de baja
+          </button>
         </div>`;
       });
       html+=`</div>`;
     }
-
     res.innerHTML=html;
   } catch(e){
     res.innerHTML=`<div style="color:var(--rojo);text-align:center;padding:16px">Error al consultar: ${e.message}</div>`;
+  }
+}
+
+function selMotivoBaja(el){
+  document.querySelectorAll('.btn-motivo-baja').forEach(b=>{
+    b.style.borderColor='var(--borde)';b.style.background='white';b.classList.remove('active');
+  });
+  el.style.borderColor='var(--rojo)';el.style.background='#fff5f5';el.classList.add('active');
+}
+
+function confirmarBaja(trabId, nombre){
+  document.getElementById('baja-nombre').textContent=nombre;
+  document.getElementById('baja-id').value=trabId;
+  document.getElementById('modal-baja').classList.add('on');
+}
+
+async function ejecutarBaja(){
+  const trabId=document.getElementById('baja-id').value;
+  const motivo=document.querySelector('.btn-motivo-baja.active')?.dataset.motivo;
+  if(!motivo){toast('Selecciona el motivo de baja',false);return;}
+
+  try{
+    await fetch(`${SU}/rest/v1/trabajadores?id=eq.${trabId}`,{
+      method:'PATCH',
+      headers:{...H,'Prefer':'return=minimal'},
+      body:JSON.stringify({activo:false, motivo_baja:motivo})
+    });
+    document.getElementById('modal-baja').classList.remove('on');
+    toast('Trabajador dado de baja correctamente ✓',true);
+    // Actualizar lista local
+    const t=trabs.find(x=>x.id==trabId);
+    if(t) trabs=trabs.filter(x=>x.id!=trabId);
+    consultarAsistencia();
+  } catch(e){
+    toast('Error al dar de baja: '+e.message,false);
   }
 }
 
