@@ -2244,16 +2244,29 @@ async function ejecutarBaja(){
   if(!motivo){toast('Selecciona el motivo de baja',false);return;}
 
   try{
-    await fetch(`${SU}/rest/v1/trabajadores?id=eq.${trabId}`,{
+    const r=await fetch(`${SU}/rest/v1/trabajadores?id=eq.${trabId}`,{
       method:'PATCH',
       headers:{...H,'Prefer':'return=minimal'},
       body:JSON.stringify({activo:false, motivo_baja:motivo})
     });
+    if(!r.ok){
+      const errTxt=await r.text();
+      console.error('Error baja:',errTxt);
+      // Si falla por motivo_baja, reintentar solo con activo:false
+      if(errTxt.includes('motivo_baja')){
+        const r2=await fetch(`${SU}/rest/v1/trabajadores?id=eq.${trabId}`,{
+          method:'PATCH',
+          headers:{...H,'Prefer':'return=minimal'},
+          body:JSON.stringify({activo:false})
+        });
+        if(!r2.ok){toast('Error al dar de baja en Supabase',false);return;}
+      } else {
+        toast('Error al dar de baja: '+errTxt,false);return;
+      }
+    }
     document.getElementById('modal-baja').classList.remove('on');
     toast('Trabajador dado de baja correctamente ✓',true);
-    // Actualizar lista local
-    const t=trabs.find(x=>x.id==trabId);
-    if(t) trabs=trabs.filter(x=>x.id!=trabId);
+    trabs=trabs.filter(x=>x.id!=trabId);
     consultarAsistencia();
   } catch(e){
     toast('Error al dar de baja: '+e.message,false);
