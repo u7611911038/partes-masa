@@ -299,7 +299,8 @@
         <label class="cl2">Turno</label>
         <select class="ci" id="pm-turno">
           <option value="mañana">Mañana (8h) 07:00–15:00</option>
-          <option value="noche">Noche (12h) 07:00–19:00</option>
+          <option value="dia12">Día (12h) 07:00–19:00</option>
+          <option value="noche">Noche (12h) 19:00–07:00</option>
           <option value="especial">Especial</option>
         </select>
       </div>
@@ -389,7 +390,8 @@
           <label class="cl2">Turno</label>
           <select class="ci" id="pj-turno">
             <option value="mañana">Mañana (8h) 07:00–15:00</option>
-            <option value="noche">Noche (12h) 07:00–19:00</option>
+            <option value="dia12">Día (12h) 07:00–19:00</option>
+            <option value="noche">Noche (12h) 19:00–07:00</option>
             <option value="especial">Especial</option>
           </select>
         </div>
@@ -525,7 +527,8 @@
         <label class="cl2">Turno</label>
         <select class="ci" id="m-turno">
           <option value="mañana">Mañana (8h) 07:00–15:00</option>
-          <option value="noche">Noche (12h) 07:00–19:00</option>
+          <option value="dia12">Día (12h) 07:00–19:00</option>
+          <option value="noche">Noche (12h) 19:00–07:00</option>
           <option value="especial">Especial</option>
         </select>
       </div>
@@ -797,11 +800,16 @@ function renderDia(partes){
     if(p.plus_turnicidad)pl.push('<span class="ba baz">TURN</span>');
     if(p.plus_entrada)pl.push('<span class="ba bam">ENTR</span>');
     if(p.plus_taller)pl.push('<span class="ba bam">TALL</span>');
+    if(p.dieta==='media')pl.push('<span class="ba" style="background:#e67e22">½DIETA</span>');
+    if(p.dieta==='completa')pl.push('<span class="ba" style="background:#e67e22">DIETA</span>');
+    if(p.tipo_incidencia==='VACACIONES')pl.push('<span class="ba" style="background:#27ae60">VAC</span>');
+    if(p.tipo_incidencia==='MEDICO')pl.push('<span class="ba" style="background:#f39c12">MED</span>');
+    const turnoLabel=p.turno==='mañana'?'8H':p.turno==='dia12'?'12H':p.turno==='noche'?'🌙12H':'ESP';
     const fechaStr=new Date(p.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
     h+=`<tr>
       <td style="white-space:nowrap;font-weight:600">${fechaStr}</td>
       <td><div class="nc">${p.trabajadores?.nombre||'—'}</div></td>
-      <td><span class="ba baz">${p.turno==='mañana'?'8H':'12H'}</span></td>
+      <td><span class="ba baz">${turnoLabel}</span></td>
       <td>${obs.map(o=>`<span class="ot">${o.obras?.numero?o.obras.numero+' — ':''}${o.obras?.nombre||'—'} <b>${o.horas}h</b></span>`).join('')}</td>
       <td><span class="hn">${p.horas_normales||0}</span></td>
       <td><span class="he">${p.horas_extra||0}</span></td>
@@ -844,10 +852,15 @@ function renderTrab(partes){
       const pl=[];
       if(p.plus_nocturnidad)pl.push('NOCT');if(p.plus_turnicidad)pl.push('TURN');
       if(p.plus_entrada)pl.push('ENTR');if(p.plus_taller)pl.push('TALL');
+      if(p.dieta==='media')pl.push('½DIETA');
+      if(p.dieta==='completa')pl.push('DIETA');
+      if(p.tipo_incidencia==='VACACIONES')pl.push('VAC');
+      if(p.tipo_incidencia==='MEDICO')pl.push('MED');
+      const tLabel=p.turno==='mañana'?'8H':p.turno==='dia12'?'12H':p.turno==='noche'?'🌙12H':'ESP';
       const fs=new Date(p.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
       html+=`<tr>
         <td style="white-space:nowrap;font-weight:600">${fs}</td>
-        <td><span class="ba baz">${p.turno==='mañana'?'8H':'12H'}</span></td>
+        <td><span class="ba baz">${tLabel}</span></td>
         <td>${obs.map(o=>`<div><span class="ot">${o.obras?.numero?o.obras.numero+' — ':''}${o.obras?.nombre||'—'} <b>${o.horas}h</b></span>${o.comentarios?`<div style="font-size:11px;color:var(--txt2);font-style:italic">"${o.comentarios}"</div>`:''}</div>`).join('')}</td>
         <td><span class="hn">${p.horas_normales||0}</span></td>
         <td><span class="he">${p.horas_extra||0}</span></td>
