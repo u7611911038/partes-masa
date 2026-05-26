@@ -473,20 +473,20 @@
     </div>
     <input type="hidden" id="baja-id"/>
     <p style="font-size:14px;color:var(--txt2);margin-bottom:16px">
-      Selecciona el motivo de baja de <b id="baja-nombre" style="color:var(--dark)"></b>:
+      ¿Por qué no ha fichado <b id="baja-nombre" style="color:var(--dark)"></b>?
     </p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
       <button class="btn-motivo-baja" data-motivo="vacaciones" onclick="selMotivoBaja(this)"
         style="padding:12px;border:2px solid var(--borde);border-radius:8px;background:white;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left">
-        🏖️ Vacaciones
+        🏖️ Vacaciones <span style="font-size:11px;font-weight:400;color:#888"> — crea parte VAC para hoy, trabajador sigue activo</span>
       </button>
       <button class="btn-motivo-baja" data-motivo="medico" onclick="selMotivoBaja(this)"
         style="padding:12px;border:2px solid var(--borde);border-radius:8px;background:white;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left">
-        🏥 Médico / Baja médica
+        🏥 Médico <span style="font-size:11px;font-weight:400;color:#888"> — crea parte MED para hoy, trabajador sigue activo</span>
       </button>
       <button class="btn-motivo-baja" data-motivo="baja_empresa" onclick="selMotivoBaja(this)"
         style="padding:12px;border:2px solid var(--borde);border-radius:8px;background:white;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left">
-        🏢 Baja de empresa
+        🏢 Baja de empresa <span style="font-size:11px;font-weight:400;color:#888"> — marca al trabajador como inactivo permanentemente</span>
       </button>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--borde);padding-top:16px">
@@ -791,7 +791,7 @@ function renderDia(partes){
   const rm={ninguno:'—',diario:'Diario',fin_de_semana:'F.Sem',festivo:'Fest',semanal:'Sem'};
   let h=`<div class="tpanel"><div class="thead2"><div class="ttit">${titulo}</div><div style="font-size:13px;color:var(--txt2)">${partes.length} parte${partes.length!==1?'s':''}</div></div>
   <div class="twrap"><table><thead><tr>
-    <th>Fecha</th><th>Trabajador</th><th>Turno</th><th>Obras</th><th>H.Norm</th><th>H.Extra</th><th>Pluses</th><th>Retén</th><th>Llam.</th><th>Estado</th><th>Acciones</th>
+    <th>Fecha</th><th>Hora</th><th>Trabajador</th><th>Turno</th><th>Obras</th><th>H.Norm</th><th>H.Extra</th><th>Pluses</th><th>Retén</th><th>Llam.</th><th>Estado</th><th>Acciones</th>
   </tr></thead><tbody>`;
   partes.forEach(p=>{
     const obs=p.partes_obras||[];
@@ -808,6 +808,7 @@ function renderDia(partes){
     const fechaStr=new Date(p.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
     h+=`<tr>
       <td style="white-space:nowrap;font-weight:600">${fechaStr}</td>
+      <td><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--txt2)">${p.hora_fichaje||'—'}</span></td>
       <td><div class="nc">${p.trabajadores?.nombre||'—'}</div></td>
       <td><span class="ba baz">${turnoLabel}</span></td>
       <td>${obs.map(o=>`<span class="ot">${o.obras?.numero?o.obras.numero+' — ':''}${o.obras?.nombre||'—'} <b>${o.horas}h</b></span>`).join('')}</td>
@@ -845,7 +846,7 @@ function renderTrab(partes){
         </div>
       </div>
       <div class="twrap"><table><thead><tr>
-        <th>Fecha</th><th>Turno</th><th>Obras</th><th>H.Norm</th><th>H.Extra</th><th>Pluses</th><th>Retén</th><th>Estado</th><th>Acciones</th>
+        <th>Fecha</th><th>Hora</th><th>Turno</th><th>Obras</th><th>H.Norm</th><th>H.Extra</th><th>Pluses</th><th>Retén</th><th>Estado</th><th>Acciones</th>
       </tr></thead><tbody>`;
     pts.sort((a,b)=>a.fecha>b.fecha?1:-1).forEach(p=>{
       const obs=p.partes_obras||[];
@@ -860,6 +861,7 @@ function renderTrab(partes){
       const fs=new Date(p.fecha+'T12:00:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'});
       html+=`<tr>
         <td style="white-space:nowrap;font-weight:600">${fs}</td>
+        <td><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--txt2)">${p.hora_fichaje||'—'}</span></td>
         <td><span class="ba baz">${tLabel}</span></td>
         <td>${obs.map(o=>`<div><span class="ot">${o.obras?.numero?o.obras.numero+' — ':''}${o.obras?.nombre||'—'} <b>${o.horas}h</b></span>${o.comentarios?`<div style="font-size:11px;color:var(--txt2);font-style:italic">"${o.comentarios}"</div>`:''}</div>`).join('')}</td>
         <td><span class="hn">${p.horas_normales||0}</span></td>
@@ -2241,9 +2243,42 @@ function confirmarBaja(trabId, nombre){
 async function ejecutarBaja(){
   const trabId=document.getElementById('baja-id').value;
   const motivo=document.querySelector('.btn-motivo-baja.active')?.dataset.motivo;
-  if(!motivo){toast('Selecciona el motivo de baja',false);return;}
+  if(!motivo){toast('Selecciona el motivo',false);return;}
 
   try{
+    // Vacaciones y médico → crear parte para ese día, NO marcar inactivo
+    if(motivo==='vacaciones'||motivo==='medico'){
+      const fechaAsi=document.getElementById('asi-fecha').value;
+      const etiqueta=motivo==='vacaciones'?'VACACIONES':'MEDICO';
+      const r=await fetch(`${SU}/rest/v1/partes`,{
+        method:'POST',
+        headers:{...H,'Prefer':'return=minimal'},
+        body:JSON.stringify({
+          trabajador_id:parseInt(trabId),
+          fecha:fechaAsi,
+          turno:'especial',
+          plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,
+          reten:'ninguno',llamadas:0,
+          total_horas:0,horas_normales:0,horas_extra:0,
+          tipo_incidencia:etiqueta,
+          dieta:'ninguna',
+          validado_jefe_equipo:true,
+          validado_jefe_obra:true
+        })
+      });
+      if(!r.ok){
+        const errTxt=await r.text();
+        if(errTxt.includes('23505')) toast('Ya existe un parte para ese trabajador en esa fecha',false);
+        else toast('Error al crear parte: '+errTxt,false);
+        return;
+      }
+      document.getElementById('modal-baja').classList.remove('on');
+      toast(`Parte ${etiqueta} creado para hoy ✓`,true);
+      consultarAsistencia();
+      return;
+    }
+
+    // Baja de empresa → marcar inactivo permanentemente
     const r=await fetch(`${SU}/rest/v1/trabajadores?id=eq.${trabId}`,{
       method:'PATCH',
       headers:{...H,'Prefer':'return=minimal'},
@@ -2251,25 +2286,19 @@ async function ejecutarBaja(){
     });
     if(!r.ok){
       const errTxt=await r.text();
-      console.error('Error baja:',errTxt);
-      // Si falla por motivo_baja, reintentar solo con activo:false
       if(errTxt.includes('motivo_baja')){
-        const r2=await fetch(`${SU}/rest/v1/trabajadores?id=eq.${trabId}`,{
-          method:'PATCH',
-          headers:{...H,'Prefer':'return=minimal'},
+        await fetch(`${SU}/rest/v1/trabajadores?id=eq.${trabId}`,{
+          method:'PATCH', headers:{...H,'Prefer':'return=minimal'},
           body:JSON.stringify({activo:false})
         });
-        if(!r2.ok){toast('Error al dar de baja en Supabase',false);return;}
-      } else {
-        toast('Error al dar de baja: '+errTxt,false);return;
-      }
+      } else { toast('Error al dar de baja: '+errTxt,false); return; }
     }
     document.getElementById('modal-baja').classList.remove('on');
-    toast('Trabajador dado de baja correctamente ✓',true);
+    toast('Trabajador dado de baja permanente ✓',true);
     trabs=trabs.filter(x=>x.id!=trabId);
     consultarAsistencia();
   } catch(e){
-    toast('Error al dar de baja: '+e.message,false);
+    toast('Error: '+e.message,false);
   }
 }
 
