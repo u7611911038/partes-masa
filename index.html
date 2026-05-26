@@ -1379,7 +1379,8 @@ async function enviarParte() {
         llamadas: llamadas,
         total_horas: totalHoras,
         horas_normales: horasNormales,
-        horas_extra: horasExtra
+        horas_extra: horasExtra,
+        hora_fichaje: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
       })
     });
 
