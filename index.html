@@ -1067,6 +1067,16 @@ document.getElementById('fecha-display').innerHTML =
 // Construir fecha en hora local (no UTC) para evitar que a las 7am España diga que es el día anterior
 const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
 
+// Fecha efectiva del parte: si es turno noche, usar el día anterior
+function getFechaEfectiva() {
+  if (turnoSeleccionado === 'noche') {
+    const ayer = new Date(hoy);
+    ayer.setDate(ayer.getDate() - 1);
+    return `${ayer.getFullYear()}-${String(ayer.getMonth()+1).padStart(2,'0')}-${String(ayer.getDate()).padStart(2,'0')}`;
+  }
+  return fechaHoy;
+}
+
 // CARGA INICIAL
 async function cargarDatos() {
   try {
@@ -1368,7 +1378,7 @@ async function enviarParte() {
       headers: { ...headers, 'Prefer': 'return=representation' },
       body: JSON.stringify({
         trabajador_id: trabajadorSeleccionado.id,
-        fecha: fechaHoy,
+        fecha: getFechaEfectiva(),
         turno: turnoSeleccionado,
         plus_nocturnidad: pluses.nocturnidad,
         plus_turnicidad: pluses.turnicidad,
