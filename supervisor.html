@@ -1373,7 +1373,7 @@ async function xlsNominas(){
     const obrasUsadas=new Map();
     ptsOrdenados.forEach(p=>{
       (p.partes_obras||[]).forEach(o=>{
-        if(!obrasUsadas.has(o.obra_id)) obrasUsadas.set(o.obra_id,o.obras?.nombre||'?');
+        if(!obrasUsadas.has(o.obra_id)) obrasUsadas.set(o.obra_id,(o.obras?.numero?o.obras.numero+' — ':'')+( o.obras?.nombre||'?'));
       });
     });
 
@@ -1536,6 +1536,8 @@ async function xlsNominas(){
       {label:'PLUS TALLER',        fn:(p)=>p.plus_taller?'1':'',   bg:AMARILLO_CLARO},
       {label:'NOCTURNIDAD',        fn:(p)=>p.plus_nocturnidad?'1':'', bg:GRIS},
       {label:'TURNICIDAD',         fn:(p)=>p.plus_turnicidad?'1':'',  bg:GRIS},
+      {label:'MEDIA DIETA',        fn:(p)=>p.dieta==='media'?'1':'',     bg:AMARILLO_CLARO},
+      {label:'DIETA COMPLETA',     fn:(p)=>p.dieta==='completa'?'1':'',  bg:AMARILLO_CLARO},
     ];
 
     seccionesPlus.forEach(sec=>{
