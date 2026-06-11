@@ -1550,8 +1550,22 @@ async function xlsNominas(){
 
     // ── SECCIÓN HORAS NORMALES / EXTRA ───────────────────────
     // SIN merge — título en col A, valor en col B (TOTALES)
-    const tNorm=ptsOrdenados.reduce((s,p)=>s+(p.horas_normales||0),0);
-    const tExtra=ptsOrdenados.reduce((s,p)=>s+(p.horas_extra||0),0);
+    // Recalcular horas normales/extra desde la fecha y turno reales
+    // No usar los valores guardados en Supabase (pueden estar mal por partes antiguos)
+    let tNorm=0, tExtra=0;
+    ptsOrdenados.forEach(p=>{
+      const esp=esFD(p.fecha);
+      const totalDia=(p.partes_obras||[]).reduce((s,o)=>s+(o.horas||0),0);
+      // Aplicar descuento convenio
+      const totalEf=(totalDia>=12&&convenioXls===11)?totalDia-1:totalDia;
+      const llamadasExtra=(p.llamadas||0)*2;
+      if(esp){
+        tExtra+=totalEf+llamadasExtra;
+      } else {
+        tNorm+=Math.min(totalEf,8);
+        tExtra+=Math.max(0,totalEf-8)+llamadasExtra;
+      }
+    });
 
     celda(ws,filaActual,COL_PROY,'HORAS NORMALES',{bold:true,bg:VERDE_CLARO,align:'left',border:borde});
     ws.mergeCells(filaActual,COL_TOT,filaActual,32);
