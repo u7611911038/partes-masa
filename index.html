@@ -269,7 +269,10 @@
     background: rgba(204,30,30,0.15);
   }
 
-  .turno-btn.activo .horas { color: var(--rojo); }
+  .turno-noche { background: #1a1a2e !important; border-color: #4a4a8a !important; }
+  .turno-noche .horas { color: #a0a0ff !important; }
+  .turno-noche .rango { color: #7070bb !important; }
+  .turno-noche.activo { border-color: #a0a0ff !important; background: #2a2a4e !important; }
 
   /* OBRAS */
   .obra-linea {
@@ -818,8 +821,8 @@
           <span class="horas">12h</span>
           <span class="rango">07:00 — 19:00</span>
         </div>
-        <div class="turno-btn" onclick="seleccionarTurno('noche', this)">
-          <span class="horas">12h 🌙</span>
+        <div class="turno-btn turno-noche" onclick="seleccionarTurno('noche', this)">
+          <span class="horas">🌙 NOCHE</span>
           <span class="rango">19:00 — 07:00</span>
         </div>
       </div>
@@ -1067,7 +1070,9 @@ document.getElementById('fecha-display').innerHTML =
 // Construir fecha en hora local (no UTC) para evitar que a las 7am España diga que es el día anterior
 const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
 
-// Fecha efectiva del parte: si es turno noche, usar el día anterior
+// Fecha efectiva del parte: si es turno noche, el parte es del día en que ENTRÓ (ayer)
+// Pero si ayer era fin de semana/festivo, el parte sigue siendo de ayer (todo extra)
+// Si ayer era laborable → parte de ayer (8h normales + extra)
 function getFechaEfectiva() {
   if (turnoSeleccionado === 'noche') {
     const ayer = new Date(hoy);
@@ -1188,6 +1193,7 @@ function seleccionarTurno(turno, el) {
     ayer.setDate(ayer.getDate() - 1);
     const ayerFecha = `${ayer.getFullYear()}-${String(ayer.getMonth()+1).padStart(2,'0')}-${String(ayer.getDate()).padStart(2,'0')}`;
     const ayerEsFinde = ayer.getDay() === 0 || ayer.getDay() === 6;
+    // esDiaEspecial se basa en el día de ENTRADA (ayer)
     esDiaEspecial = ayerEsFinde || festivos.includes(ayerFecha);
   } else {
     // Turno mañana (8h) y día largo (12h) → usar el día actual
