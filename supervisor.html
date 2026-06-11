@@ -912,14 +912,9 @@ async function devolver(id){
 // ─── MODAL EDITAR ─────────────────────────────────────────
 function esFD(fecha){const d=new Date(fecha+'T12:00:00');return d.getDay()===0||d.getDay()===6||festivos.includes(fecha);}
 
-// Para turno noche real (19:00-07:00), el parte corresponde al día anterior
+// La fecha que llega ya es la fecha efectiva del parte (para noche = día anterior)
+// Solo hay que evaluar si ESA fecha es especial
 function esFDEfectivo(fecha, turno){
-  if(turno==='noche'){
-    const ayer=new Date(fecha+'T12:00:00');
-    ayer.setDate(ayer.getDate()-1);
-    const ayerStr=`${ayer.getFullYear()}-${String(ayer.getMonth()+1).padStart(2,'0')}-${String(ayer.getDate()).padStart(2,'0')}`;
-    return ayer.getDay()===0||ayer.getDay()===6||festivos.includes(ayerStr);
-  }
   return esFD(fecha);
 }
 
