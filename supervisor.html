@@ -524,8 +524,12 @@
     <input type="hidden" id="m-id"/>
     <div class="g2">
       <div>
+        <label class="cl2">Fecha del parte</label>
+        <input type="date" class="ci" id="m-fecha" onchange="mFechaChanged()"/>
+      </div>
+      <div>
         <label class="cl2">Turno</label>
-        <select class="ci" id="m-turno">
+        <select class="ci" id="m-turno" onchange="mTurnoChanged()">
           <option value="mañana">Mañana (8h) 07:00–15:00</option>
           <option value="dia12">Día (12h) 07:00–19:00</option>
           <option value="noche">Noche (12h) 19:00–07:00</option>
@@ -926,8 +930,11 @@ function abrirModal(id){
   const trab2=trabs.find(t=>t.id==p.trabajador_id);
   p._convenio=trab2?.horas_convenio||11;
   document.getElementById('m-id').value=p.id;
+  document.getElementById('m-fecha').value=p.fecha;
   document.getElementById('m-tit').innerHTML='EDITAR: <span style="color:var(--rojo)">'+p.trabajadores?.nombre+'</span> — '+p.fecha;
   document.getElementById('m-turno').value=p.turno||'mañana';
+  // Guardar referencia al parte actual para usarla en mFechaChanged/mTurnoChanged
+  window._parteEditando=p;
 
   lm=p.llamadas||0;
   document.getElementById('m-l').value=lm;
@@ -976,7 +983,8 @@ function crearFilaObra(pid, oid, obraId, horas, comentario){
 
 function actualizarInfoHoras(p,total){
   const turnoEdit=document.getElementById('m-turno')?.value||p.turno||'mañana';
-  const esp=esFDEfectivo(p.fecha, turnoEdit);
+  const fechaEdit=document.getElementById('m-fecha')?.value||p.fecha;
+  const esp=esFDEfectivo(fechaEdit, turnoEdit);
   const convenio=p._convenio||11;
   let totalEf=total;
   if(total>=12&&convenio===11) totalEf=total-1;
@@ -991,6 +999,43 @@ function recalcModal(pid){
   const p=datos.find(x=>x.id==pid);if(!p)return;
   const total=Array.from(document.querySelectorAll('.eh')).reduce((s,i)=>s+(parseFloat(i.value)||0),0);
   actualizarInfoHoras(p,total);
+}
+
+function mFechaChanged(){
+  const p=window._parteEditando;
+  if(!p) return;
+  const nuevaFecha=document.getElementById('m-fecha').value;
+  const turno=document.getElementById('m-turno').value;
+  const esEsp=esFDEfectivo(nuevaFecha, turno);
+
+  // Actualizar título
+  document.getElementById('m-tit').innerHTML='EDITAR: <span style="color:var(--rojo)">'+p.trabajadores?.nombre+'</span> — '+nuevaFecha;
+
+  // Si es fin de semana o festivo → desactivar pluses que no aplican
+  if(esEsp){
+    document.querySelectorAll('.pp[data-p="entrada"],.pp[data-p="taller"]').forEach(pill=>{
+      pill.classList.remove('on');
+    });
+  }
+
+  // Aviso visual
+  if(esEsp){
+    toast('⚠️ Fin de semana o festivo — pluses de Entrada y Taller desactivados',false);
+  }
+
+  // Recalcular horas con la nueva fecha
+  const p2={...p, fecha:nuevaFecha};
+  const total=Array.from(document.querySelectorAll('.oc')).reduce((s,c)=>s+(parseFloat(c.querySelector('.eh')?.value)||0),0);
+  actualizarInfoHoras(p2, total);
+}
+
+function mTurnoChanged(){
+  const p=window._parteEditando;
+  if(!p) return;
+  const fecha=document.getElementById('m-fecha').value||p.fecha;
+  const p2={...p, fecha};
+  const total=Array.from(document.querySelectorAll('.oc')).reduce((s,c)=>s+(parseFloat(c.querySelector('.eh')?.value)||0),0);
+  actualizarInfoHoras(p2, total);
 }
 
 function selR(el){document.querySelectorAll('.rp[data-r]').forEach(p=>p.classList.remove('on'));el.classList.add('on');}
@@ -1030,7 +1075,8 @@ async function guardar(){
   const idsEliminar=[...idsOriginales].filter(id=>!idsEnModal.has(id));
 
   const turnoEdit=document.getElementById('m-turno').value;
-  const esp=esFDEfectivo(p.fecha, turnoEdit);
+  const fechaEdit=document.getElementById('m-fecha').value||p.fecha;
+  const esp=esFDEfectivo(fechaEdit, turnoEdit);
   // Aplicar descuento 1h convenio 11h si ≥12h apuntadas
   const convenioTrab=p._convenio||11;
   let totalEfectivo=total;
@@ -1050,6 +1096,7 @@ async function guardar(){
     method:'PATCH',
     headers:{...H,'Prefer':'return=minimal'},
     body:JSON.stringify({
+      fecha:fechaEdit,
       turno:document.getElementById('m-turno').value,
       llamadas:lm, reten:ret, dieta,
       plus_nocturnidad:pN, plus_turnicidad:pT, plus_entrada:pE, plus_taller:pTa,
