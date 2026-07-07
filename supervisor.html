@@ -150,6 +150,47 @@
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#333;color:white;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:9999;transition:transform .3s;border-left:4px solid var(--rojo);}
   .toast.on{transform:translateX(-50%) translateY(0);}
   .toast.ok{border-left-color:var(--verde);}
+  /* HOJA DE HORAS CALENDARIO */
+  .hh-cabecera{background:var(--rojo);color:white;padding:16px 20px;border-radius:10px 10px 0 0;margin-bottom:0}
+  .hh-nombre{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:1px}
+  .hh-mes-label{font-size:13px;opacity:0.8;margin-top:2px}
+  .hh-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:12px;background:white;border:1px solid var(--borde);border-top:none;border-radius:0 0 10px 10px}
+  .hh-dia-header{text-align:center;font-size:11px;font-weight:700;color:var(--txt2);padding:4px;letter-spacing:1px}
+  .hh-dia-header.finde{color:var(--rojo)}
+  .hh-dia{border-radius:8px;padding:8px 6px;cursor:pointer;transition:all 0.15s;position:relative;min-height:90px;border:2px solid transparent}
+  .hh-dia:hover{border-color:var(--rojo);transform:scale(1.02)}
+  .hh-dia.vacio{background:#fafafa;cursor:default;border-color:transparent}
+  .hh-dia.vacio:hover{transform:none;border-color:transparent}
+  .hh-dia.laborable{background:#f8f9fa}
+  .hh-dia.laborable:hover{background:#fff}
+  .hh-dia.finde{background:#fff5f5}
+  .hh-dia.festivo{background:#fff0e0}
+  .hh-dia.con-parte{border-color:#dee2e6}
+  .hh-dia.con-parte.laborable{background:#f0f7ff}
+  .hh-dia.con-parte.finde{background:#ffe8e8}
+  .hh-dia-num{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:var(--dark);line-height:1}
+  .hh-dia.finde .hh-dia-num{color:var(--rojo)}
+  .hh-dia-horas{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--rojo);line-height:1;margin-top:4px}
+  .hh-dia-obras{font-size:9px;color:var(--txt2);margin-top:3px;line-height:1.3}
+  .hh-dia-badges{display:flex;flex-wrap:wrap;gap:2px;margin-top:4px}
+  .hh-badge{font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;background:#e0e0e0;color:#555}
+  .hh-badge.entr{background:#fef3cd;color:#856404}
+  .hh-badge.noct{background:#cfe2ff;color:#084298}
+  .hh-badge.diet{background:#ffe8cc;color:#7d4e00}
+  .hh-badge.vac{background:#d1e7dd;color:#0a3622}
+  .hh-badge.med{background:#fff3cd;color:#664d03}
+  .hh-resumen{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
+  .hh-res-card{background:white;border:1px solid var(--borde);border-radius:8px;padding:14px;text-align:center}
+  .hh-res-val{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900}
+  .hh-res-lbl{font-size:11px;color:var(--txt2);font-weight:600;letter-spacing:1px;margin-top:2px}
+  .hh-res-norm .hh-res-val{color:#27ae60}
+  .hh-res-ext .hh-res-val{color:var(--amarillo)}
+  /* plus dia modal */
+  .pp-dia.activo{background:var(--rojo)!important;color:white!important;border-color:var(--rojo)!important}
+  .reten-dia.on{border-color:var(--rojo)!important;background:#fff0f0!important;color:var(--rojo)!important}
+  .dieta-dia.on{border-color:var(--rojo)!important;background:#fff0f0!important;color:var(--rojo)!important}
+  #panel-hojahoras{display:none}
+
   .btn-tipo-jefe{flex:1;padding:10px 6px;border:2px solid var(--borde);border-radius:8px;background:white;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s;color:var(--txt2)}
   .btn-tipo-jefe.active{border-color:#16a085;background:#eafaf1;color:#16a085}
   .btn-tipo-jefe:hover{border-color:#16a085;color:#16a085}
@@ -193,6 +234,7 @@
     <div class="main-tabs" id="main-tabs" style="display:none">
       <div class="main-tab on" onclick="switchPanel('partes')">PARTES</div>
       <div class="main-tab" onclick="switchPanel('proyectos')">CONTROL PROYECTOS</div>
+      <div class="main-tab" onclick="switchPanel('hojahoras')">HOJA DE HORAS</div>
     </div>
 
     <!-- PANEL PARTES -->
@@ -264,6 +306,110 @@
       <div id="res-proyectos"></div>
     </div>
 
+    <!-- PANEL HOJA DE HORAS -->
+    <div id="panel-hojahoras" style="display:none">
+      <div class="fpanel" style="margin-bottom:20px">
+        <div class="ftit">Hoja de Horas</div>
+        <div class="g2">
+          <div>
+            <label class="cl2">Trabajador</label>
+            <select class="ci" id="hh-trabajador" onchange="cargarHojaHoras()">
+              <option value="">— Selecciona trabajador —</option>
+            </select>
+          </div>
+          <div>
+            <label class="cl2">Mes</label>
+            <input type="month" class="ci" id="hh-mes" onchange="cargarHojaHoras()"/>
+          </div>
+        </div>
+      </div>
+      <div id="hh-contenido"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL DÍA HOJA HORAS -->
+<div class="modal" id="modal-dia">
+  <div class="mc" style="max-width:480px">
+    <div class="mh">
+      <div class="mt" id="dia-titulo" style="color:var(--rojo)"></div>
+      <button class="bx" onclick="cerrarModalDia()">×</button>
+    </div>
+    <input type="hidden" id="dia-fecha"/>
+    <input type="hidden" id="dia-trabajador-id"/>
+    <input type="hidden" id="dia-parte-id"/>
+
+    <!-- Turno -->
+    <div style="margin-bottom:16px">
+      <label class="cl2">Turno</label>
+      <select class="ci" id="dia-turno">
+        <option value="mañana">Mañana (8h) 07:00–15:00</option>
+        <option value="dia12">Día (12h) 07:00–19:00</option>
+        <option value="noche">Noche 🌙 (12h) 19:00–07:00</option>
+        <option value="especial">Especial</option>
+      </select>
+    </div>
+
+    <!-- Obras -->
+    <div style="margin-bottom:16px">
+      <label class="cl2">Obras y horas</label>
+      <div id="dia-obras-lista"></div>
+      <button class="btn bgris" style="margin-top:8px;font-size:12px" onclick="diaAddObra()">+ Añadir obra</button>
+    </div>
+
+    <!-- Info horas -->
+    <div style="background:#f0f8ff;border:1px solid #bee3f8;border-radius:6px;padding:8px 12px;font-size:13px;margin-bottom:16px" id="dia-info-horas">—</div>
+
+    <!-- Pluses -->
+    <div style="margin-bottom:16px">
+      <label class="cl2">Pluses</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <div class="pp-dia" data-plus="plus_entrada" onclick="togglePlusDia(this)" style="padding:8px 14px;border:2px solid var(--borde);border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;background:white">Entrada Complejo</div>
+        <div class="pp-dia" data-plus="plus_taller" onclick="togglePlusDia(this)" style="padding:8px 14px;border:2px solid var(--borde);border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;background:white">Plus Taller</div>
+        <div class="pp-dia" data-plus="plus_nocturnidad" onclick="togglePlusDia(this)" style="padding:8px 14px;border:2px solid var(--borde);border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;background:white">Nocturnidad</div>
+        <div class="pp-dia" data-plus="plus_turnicidad" onclick="togglePlusDia(this)" style="padding:8px 14px;border:2px solid var(--borde);border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;background:white">Turnicidad</div>
+      </div>
+    </div>
+
+    <!-- Retén -->
+    <div style="margin-bottom:16px">
+      <label class="cl2">Retén</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <div class="reten-dia on" data-r="ninguno" onclick="selRetenDia(this)" style="padding:6px 12px;border:2px solid var(--rojo);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:#fff0f0;color:var(--rojo)">Sin retén</div>
+        <div class="reten-dia" data-r="diario" onclick="selRetenDia(this)" style="padding:6px 12px;border:2px solid var(--borde);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:white">Diario</div>
+        <div class="reten-dia" data-r="fin_de_semana" onclick="selRetenDia(this)" style="padding:6px 12px;border:2px solid var(--borde);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:white">Fin Semana</div>
+        <div class="reten-dia" data-r="festivo" onclick="selRetenDia(this)" style="padding:6px 12px;border:2px solid var(--borde);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:white">Festivo</div>
+        <div class="reten-dia" data-r="semanal" onclick="selRetenDia(this)" style="padding:6px 12px;border:2px solid var(--borde);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:white">Semanal</div>
+      </div>
+    </div>
+
+    <!-- Llamadas -->
+    <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">
+      <label class="cl2" style="margin:0">Llamadas al retén:</label>
+      <button onclick="adjLlamDia(-1)" style="width:30px;height:30px;border:1px solid #ddd;border-radius:5px;font-size:16px;cursor:pointer;background:white">−</button>
+      <span id="dia-llamadas-display" style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;min-width:24px;text-align:center">0</span>
+      <button onclick="adjLlamDia(1)" style="width:30px;height:30px;border:1px solid #ddd;border-radius:5px;font-size:16px;cursor:pointer;background:white">+</button>
+      <input type="hidden" id="dia-llamadas" value="0"/>
+    </div>
+
+    <!-- Dieta -->
+    <div style="margin-bottom:20px">
+      <label class="cl2">Dieta</label>
+      <div style="display:flex;gap:8px">
+        <div class="dieta-dia on" data-d="ninguna" onclick="selDietaDia(this)" style="flex:1;padding:8px;border:2px solid var(--rojo);border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;text-align:center;background:#fff0f0;color:var(--rojo)">Sin dieta</div>
+        <div class="dieta-dia" data-d="media" onclick="selDietaDia(this)" style="flex:1;padding:8px;border:2px solid var(--borde);border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;text-align:center;background:white">🍽️ Media</div>
+        <div class="dieta-dia" data-d="completa" onclick="selDietaDia(this)" style="flex:1;padding:8px;border:2px solid var(--borde);border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;text-align:center;background:white">🍽️🍽️ Completa</div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--borde);padding-top:16px">
+      <button class="btn" style="background:#e74c3c;color:white" id="dia-btn-borrar" onclick="borrarParteDia()">🗑️ BORRAR PARTE</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn bgris" onclick="cerrarModalDia()">Cancelar</button>
+        <button class="btn brojo" onclick="guardarParteDia()">GUARDAR</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -665,10 +811,12 @@ async function init(){
 // ─── SWITCH PANEL ─────────────────────────────────────────
 function switchPanel(p){
   panelActual=p;
-  document.querySelectorAll('.main-tab').forEach((t,i)=>t.classList.toggle('on',(i===0&&p==='partes')||(i===1&&p==='proyectos')));
+  document.querySelectorAll('.main-tab').forEach((t,i)=>t.classList.toggle('on',(i===0&&p==='partes')||(i===1&&p==='proyectos')||(i===2&&p==='hojahoras')));
   document.getElementById('panel-partes').style.display=p==='partes'?'block':'none';
   document.getElementById('panel-proyectos').style.display=p==='proyectos'?'block':'none';
+  document.getElementById('panel-hojahoras').style.display=p==='hojahoras'?'block':'none';
   if(p==='proyectos') buscarProyectos();
+  if(p==='hojahoras') iniciarHojaHoras();
 }
 
 function togglePeriodo(){
@@ -2218,6 +2366,335 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(pmH) pmH.addEventListener('input',actualizarInfoManual);
   if(pmF) pmF.addEventListener('change',actualizarInfoManual);
 });
+
+// ─── HOJA DE HORAS ───────────────────────────────────────
+let hhPartesDelMes=[];
+let hhTrabId=null;
+let hhMes=null;
+let diaObraCount=0;
+
+function iniciarHojaHoras(){
+  // Poblar select trabajadores
+  const sel=document.getElementById('hh-trabajador');
+  if(sel.options.length<=1){
+    trabs.forEach(t=>sel.add(new Option(t.nombre,t.id)));
+  }
+  // Mes por defecto = mes actual
+  if(!document.getElementById('hh-mes').value){
+    const hoy=new Date();
+    document.getElementById('hh-mes').value=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+  }
+}
+
+async function cargarHojaHoras(){
+  hhTrabId=document.getElementById('hh-trabajador').value;
+  hhMes=document.getElementById('hh-mes').value;
+  if(!hhTrabId||!hhMes) return;
+
+  const [anio,mesNum]=hhMes.split('-');
+  const diasDelMes=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
+  const desde=`${hhMes}-01`;
+  const hasta=`${hhMes}-${String(diasDelMes).padStart(2,'0')}`;
+
+  // Cargar partes del trabajador en el mes
+  const r=await fetch(`${SU}/rest/v1/partes?select=*,partes_obras(*,obras(id,nombre,numero))&trabajador_id=eq.${hhTrabId}&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc`,{headers:H});
+  hhPartesDelMes=await r.json();
+
+  renderHojaHoras(anio, mesNum, diasDelMes);
+}
+
+function renderHojaHoras(anio, mesNum, diasDelMes){
+  const trab=trabs.find(t=>t.id==hhTrabId);
+  const convenio=trab?.horas_convenio||11;
+  const mesNombre=new Date(parseInt(anio),parseInt(mesNum)-1,1).toLocaleString('es-ES',{month:'long',year:'numeric'}).toUpperCase();
+
+  // Calcular totales
+  let tNorm=0,tExtra=0;
+  hhPartesDelMes.forEach(p=>{
+    const esp=esFD(p.fecha);
+    const totalDia=(p.partes_obras||[]).reduce((s,o)=>s+(o.horas||0),0);
+    const totalEf=(totalDia>=12&&convenio===11)?totalDia-1:totalDia;
+    const llExtra=(p.llamadas||0)*2;
+    if(esp){tExtra+=totalEf+llExtra;}
+    else{tNorm+=Math.min(totalEf,8);tExtra+=Math.max(0,totalEf-8)+llExtra;}
+  });
+
+  // Construir calendario
+  const diasSem=['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+  let html=`
+    <div class="hh-cabecera">
+      <div class="hh-nombre">👷 ${trab?.nombre||'—'}</div>
+      <div class="hh-mes-label">${mesNombre}</div>
+    </div>
+    <div class="hh-grid">
+      ${diasSem.map((d,i)=>`<div class="hh-dia-header${i>=5?' finde':''}">${d}</div>`).join('')}`;
+
+  // Primer día del mes (0=domingo, ajustar a lunes=0)
+  const primerDia=new Date(parseInt(anio),parseInt(mesNum)-1,1).getDay();
+  const offset=primerDia===0?6:primerDia-1;
+
+  // Celdas vacías al inicio
+  for(let i=0;i<offset;i++) html+=`<div class="hh-dia vacio"></div>`;
+
+  for(let d=1;d<=diasDelMes;d++){
+    const fecha=`${anio}-${mesNum}-${String(d).padStart(2,'0')}`;
+    const dObj=new Date(fecha+'T12:00:00');
+    const diaSem=dObj.getDay(); // 0=dom,6=sab
+    const esFinde=diaSem===0||diaSem===6;
+    const esFest=festivos.includes(fecha);
+    const parte=hhPartesDelMes.find(p=>p.fecha===fecha);
+
+    let clases='hh-dia';
+    if(esFinde||esFest) clases+=' finde';
+    else clases+=' laborable';
+    if(parte) clases+=' con-parte';
+
+    let contenido='';
+    if(parte){
+      const totalH=(parte.partes_obras||[]).reduce((s,o)=>s+(o.horas||0),0);
+      const inc=parte.tipo_incidencia;
+      if(inc==='VACACIONES') contenido=`<div class="hh-badge vac" style="font-size:11px;padding:3px 6px">🏖️ VAC</div>`;
+      else if(inc==='MEDICO') contenido=`<div class="hh-badge med" style="font-size:11px;padding:3px 6px">🏥 MED</div>`;
+      else{
+        contenido=`<div class="hh-dia-horas">${totalH}h</div>`;
+        const obras=(parte.partes_obras||[]).map(o=>`${o.obras?.numero||''}${o.obras?.numero?' ':''}${o.obras?.nombre||''}: ${o.horas}h`).join('<br>');
+        contenido+=`<div class="hh-dia-obras">${obras}</div>`;
+        contenido+='<div class="hh-dia-badges">';
+        if(parte.plus_entrada) contenido+='<span class="hh-badge entr">ENT</span>';
+        if(parte.plus_nocturnidad) contenido+='<span class="hh-badge noct">NOC</span>';
+        if(parte.dieta==='media') contenido+='<span class="hh-badge diet">½D</span>';
+        if(parte.dieta==='completa') contenido+='<span class="hh-badge diet">D</span>';
+        contenido+='</div>';
+      }
+    } else {
+      contenido=`<div style="font-size:11px;color:#ccc;margin-top:20px;text-align:center">+</div>`;
+    }
+
+    html+=`<div class="${clases}" onclick="abrirDia('${fecha}')">
+      <div class="hh-dia-num">${d}</div>
+      ${contenido}
+    </div>`;
+  }
+
+  html+=`</div>
+  <div class="hh-resumen">
+    <div class="hh-res-card hh-res-norm">
+      <div class="hh-res-val">${tNorm}</div>
+      <div class="hh-res-lbl">HORAS NORMALES</div>
+    </div>
+    <div class="hh-res-card hh-res-ext">
+      <div class="hh-res-val">${tExtra}</div>
+      <div class="hh-res-lbl">HORAS EXTRA</div>
+    </div>
+  </div>`;
+
+  document.getElementById('hh-contenido').innerHTML=html;
+}
+
+function abrirDia(fecha){
+  const parte=hhPartesDelMes.find(p=>p.fecha===fecha);
+  const dObj=new Date(fecha+'T12:00:00');
+  const label=dObj.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+
+  document.getElementById('dia-titulo').textContent=label.toUpperCase();
+  document.getElementById('dia-fecha').value=fecha;
+  document.getElementById('dia-trabajador-id').value=hhTrabId;
+  document.getElementById('dia-parte-id').value=parte?.id||'';
+  document.getElementById('dia-btn-borrar').style.display=parte?'inline-block':'none';
+
+  // Turno
+  document.getElementById('dia-turno').value=parte?.turno||'mañana';
+
+  // Obras
+  diaObraCount=0;
+  document.getElementById('dia-obras-lista').innerHTML='';
+  if(parte&&(parte.partes_obras||[]).length>0){
+    parte.partes_obras.forEach(o=>diaAddObra(o.id,o.obra_id,o.horas,o.comentarios));
+  } else {
+    diaAddObra();
+  }
+
+  // Pluses
+  document.querySelectorAll('.pp-dia').forEach(el=>{
+    el.classList.toggle('activo',!!(parte?.[el.dataset.plus]));
+  });
+
+  // Retén
+  document.querySelectorAll('.reten-dia').forEach(el=>{
+    el.classList.toggle('on',el.dataset.r===(parte?.reten||'ninguno'));
+  });
+
+  // Llamadas
+  const ll=parte?.llamadas||0;
+  document.getElementById('dia-llamadas').value=ll;
+  document.getElementById('dia-llamadas-display').textContent=ll;
+
+  // Dieta
+  document.querySelectorAll('.dieta-dia').forEach(el=>{
+    el.classList.toggle('on',el.dataset.d===(parte?.dieta||'ninguna'));
+  });
+
+  diaActualizarInfo();
+  document.getElementById('modal-dia').classList.add('on');
+}
+
+function cerrarModalDia(){ document.getElementById('modal-dia').classList.remove('on'); }
+
+function diaAddObra(oid='', obraId='', horas=8, comentario=''){
+  diaObraCount++;
+  const id=diaObraCount;
+  const d=document.createElement('div');
+  d.dataset.oid=oid;
+  d.style.cssText='display:grid;grid-template-columns:1fr 70px auto;gap:6px;margin-bottom:8px;align-items:center';
+  d.innerHTML=`
+    <select class="ci dia-obra-sel" onchange="diaActualizarInfo()">
+      ${obras.map(o=>`<option value="${o.id}"${o.id==obraId?' selected':''}>${o.numero?o.numero+' — ':''}${o.nombre}</option>`).join('')}
+    </select>
+    <input type="number" class="ci dia-obra-h" value="${horas}" min="0.5" max="24" step="0.5" oninput="diaActualizarInfo()" style="text-align:center"/>
+    ${id>1?`<button onclick="this.parentElement.remove();diaActualizarInfo()" style="background:#fee;border:1px solid #fcc;color:var(--rojo);border-radius:5px;padding:4px 8px;cursor:pointer;font-weight:700">✕</button>`:'<div></div>'}`;
+  document.getElementById('dia-obras-lista').appendChild(d);
+  diaActualizarInfo();
+}
+
+function diaActualizarInfo(){
+  const rows=document.querySelectorAll('#dia-obras-lista > div');
+  let total=0;
+  rows.forEach(r=>{ total+=parseFloat(r.querySelector('.dia-obra-h')?.value)||0; });
+  const fecha=document.getElementById('dia-fecha').value;
+  const turno=document.getElementById('dia-turno').value;
+  const esp=esFDEfectivo(fecha,turno);
+  const trab=trabs.find(t=>t.id==hhTrabId);
+  const convenio=trab?.horas_convenio||11;
+  let totalEf=(total>=12&&convenio===11)?total-1:total;
+  const ll=parseInt(document.getElementById('dia-llamadas').value)||0;
+  const hn=esp?0:Math.min(totalEf,8);
+  const he=(esp?totalEf:Math.max(0,totalEf-8))+(ll*2);
+  document.getElementById('dia-info-horas').innerHTML=
+    `Total: <b>${total}h</b>${total!==totalEf?` <span style="color:var(--rojo);font-size:11px">(−1h convenio → ${totalEf}h)</span>`:''} → <span style="color:#27ae60">${hn}h normales</span> + <span style="color:var(--amarillo)">${he}h extra</span>${esp?' <b style="color:var(--rojo)">(fin semana/festivo)</b>':''}`;
+}
+
+function togglePlusDia(el){ el.classList.toggle('activo'); }
+
+function selRetenDia(el){
+  document.querySelectorAll('.reten-dia').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function selDietaDia(el){
+  document.querySelectorAll('.dieta-dia').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function adjLlamDia(d){
+  let v=parseInt(document.getElementById('dia-llamadas').value)||0;
+  v=Math.max(0,v+d);
+  document.getElementById('dia-llamadas').value=v;
+  document.getElementById('dia-llamadas-display').textContent=v;
+  diaActualizarInfo();
+}
+
+async function guardarParteDia(){
+  const fecha=document.getElementById('dia-fecha').value;
+  const trabId=parseInt(document.getElementById('dia-trabajador-id').value);
+  const parteId=document.getElementById('dia-parte-id').value;
+  const turno=document.getElementById('dia-turno').value;
+  const reten=document.querySelector('.reten-dia.on')?.dataset.r||'ninguno';
+  const dieta=document.querySelector('.dieta-dia.on')?.dataset.d||'ninguna';
+  const llamadas=parseInt(document.getElementById('dia-llamadas').value)||0;
+  const pNoct=document.querySelector('.pp-dia[data-plus="plus_nocturnidad"]').classList.contains('activo');
+  const pTurn=document.querySelector('.pp-dia[data-plus="plus_turnicidad"]').classList.contains('activo');
+  const pEntr=document.querySelector('.pp-dia[data-plus="plus_entrada"]').classList.contains('activo');
+  const pTall=document.querySelector('.pp-dia[data-plus="plus_taller"]').classList.contains('activo');
+
+  // Recoger obras
+  const rows=document.querySelectorAll('#dia-obras-lista > div');
+  const lineasObra=[];
+  rows.forEach(r=>{
+    const obraId=parseInt(r.querySelector('.dia-obra-sel')?.value);
+    const horas=parseFloat(r.querySelector('.dia-obra-h')?.value)||0;
+    const oid=r.dataset.oid||'';
+    if(obraId&&horas>0) lineasObra.push({id:oid,obra_id:obraId,horas});
+  });
+  if(!lineasObra.length){toast('Añade al menos una obra con horas',false);return;}
+
+  const total=lineasObra.reduce((s,l)=>s+l.horas,0);
+  const esp=esFDEfectivo(fecha,turno);
+  const trab=trabs.find(t=>t.id==trabId);
+  const convenio=trab?.horas_convenio||11;
+  let totalEf=(total>=12&&convenio===11)?total-1:total;
+  const hn=esp?0:Math.min(totalEf,8);
+  const he=(esp?totalEf:Math.max(0,totalEf-8))+(llamadas*2);
+
+  const parteData={
+    trabajador_id:trabId, fecha, turno, reten, dieta, llamadas,
+    plus_nocturnidad:pNoct, plus_turnicidad:pTurn, plus_entrada:pEntr, plus_taller:pTall,
+    total_horas:total, horas_normales:hn, horas_extra:he,
+    validado_jefe_equipo:true, validado_jefe_obra:true
+  };
+
+  let pid=parteId;
+  if(parteId){
+    // UPDATE parte existente
+    await fetch(`${SU}/rest/v1/partes?id=eq.${parteId}`,{
+      method:'PATCH', headers:{...H,'Prefer':'return=minimal'},
+      body:JSON.stringify(parteData)
+    });
+  } else {
+    // INSERT parte nuevo
+    const r=await fetch(`${SU}/rest/v1/partes`,{
+      method:'POST', headers:{...H,'Prefer':'return=representation'},
+      body:JSON.stringify(parteData)
+    });
+    const data=await r.json();
+    pid=data[0]?.id;
+    document.getElementById('dia-parte-id').value=pid;
+  }
+
+  if(!pid){toast('Error al guardar el parte',false);return;}
+
+  // Gestionar obras
+  const idsOriginales=new Set((hhPartesDelMes.find(p=>p.id==parteId)?.partes_obras||[]).map(o=>String(o.id)));
+  const idsEnModal=new Set();
+
+  for(const l of lineasObra){
+    if(l.id&&!String(l.id).startsWith('new')){
+      idsEnModal.add(String(l.id));
+      await fetch(`${SU}/rest/v1/partes_obras?id=eq.${l.id}`,{
+        method:'PATCH', headers:{...H,'Prefer':'return=minimal'},
+        body:JSON.stringify({obra_id:l.obra_id,horas:l.horas})
+      });
+    } else {
+      const r=await fetch(`${SU}/rest/v1/partes_obras`,{
+        method:'POST', headers:{...H,'Prefer':'return=representation'},
+        body:JSON.stringify([{parte_id:parseInt(pid),obra_id:l.obra_id,horas:l.horas}])
+      });
+      const d=await r.json();
+      if(d[0]?.id) idsEnModal.add(String(d[0].id));
+    }
+  }
+
+  // Eliminar obras borradas
+  for(const oid of idsOriginales){
+    if(!idsEnModal.has(oid)){
+      await fetch(`${SU}/rest/v1/partes_obras?id=eq.${oid}`,{method:'DELETE',headers:H});
+    }
+  }
+
+  toast('Guardado ✓',true);
+  cerrarModalDia();
+  await cargarHojaHoras(); // Recargar calendario
+}
+
+async function borrarParteDia(){
+  const parteId=document.getElementById('dia-parte-id').value;
+  if(!parteId) return;
+  if(!confirm('¿Seguro que quieres borrar este parte?')) return;
+  await fetch(`${SU}/rest/v1/partes_obras?parte_id=eq.${parteId}`,{method:'DELETE',headers:H});
+  await fetch(`${SU}/rest/v1/partes?id=eq.${parteId}`,{method:'DELETE',headers:H});
+  toast('Parte eliminado ✓',true);
+  cerrarModalDia();
+  await cargarHojaHoras();
+}
 
 // ─── CONTROL DE ASISTENCIA ───────────────────────────────
 function abrirAsistencia(){
