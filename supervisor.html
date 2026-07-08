@@ -2389,12 +2389,16 @@ function hhNavTrab(dir){
 
 // Navegación con teclado ← →
 document.addEventListener('keydown',e=>{
-  if(document.getElementById('panel-hojahoras').style.display==='block'&&
-     !document.getElementById('modal-dia').classList.contains('on')){
+  const panel=document.getElementById('panel-hojahoras');
+  const modalDia=document.getElementById('modal-dia');
+  if(panel&&panel.style.display==='block'&&
+     modalDia&&!modalDia.classList.contains('on')){
     if(e.key==='ArrowLeft') hhNavTrab(-1);
     if(e.key==='ArrowRight') hhNavTrab(1);
   }
 });
+
+function iniciarHojaHoras(){
   // Poblar select trabajadores
   const sel=document.getElementById('hh-trabajador');
   if(sel.options.length<=1){
