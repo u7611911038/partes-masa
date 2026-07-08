@@ -313,9 +313,13 @@
         <div class="g2">
           <div>
             <label class="cl2">Trabajador</label>
-            <select class="ci" id="hh-trabajador" onchange="cargarHojaHoras()">
-              <option value="">— Selecciona trabajador —</option>
-            </select>
+            <div style="display:flex;gap:6px;align-items:center">
+              <button onclick="hhNavTrab(-1)" style="width:34px;height:38px;border:1px solid var(--borde);border-radius:6px;background:white;font-size:18px;cursor:pointer;flex-shrink:0">◀</button>
+              <select class="ci" id="hh-trabajador" onchange="cargarHojaHoras()" style="flex:1">
+                <option value="">— Selecciona trabajador —</option>
+              </select>
+              <button onclick="hhNavTrab(1)" style="width:34px;height:38px;border:1px solid var(--borde);border-radius:6px;background:white;font-size:18px;cursor:pointer;flex-shrink:0">▶</button>
+            </div>
           </div>
           <div>
             <label class="cl2">Mes</label>
@@ -2373,7 +2377,24 @@ let hhTrabId=null;
 let hhMes=null;
 let diaObraCount=0;
 
-function iniciarHojaHoras(){
+function hhNavTrab(dir){
+  const sel=document.getElementById('hh-trabajador');
+  const idx=sel.selectedIndex;
+  const newIdx=idx+dir;
+  if(newIdx>=1&&newIdx<sel.options.length){
+    sel.selectedIndex=newIdx;
+    cargarHojaHoras();
+  }
+}
+
+// Navegación con teclado ← →
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('panel-hojahoras').style.display==='block'&&
+     !document.getElementById('modal-dia').classList.contains('on')){
+    if(e.key==='ArrowLeft') hhNavTrab(-1);
+    if(e.key==='ArrowRight') hhNavTrab(1);
+  }
+});
   // Poblar select trabajadores
   const sel=document.getElementById('hh-trabajador');
   if(sel.options.length<=1){
@@ -2471,7 +2492,10 @@ function renderHojaHoras(anio, mesNum, diasDelMes){
     }
 
     html+=`<div class="${clases}" onclick="abrirDia('${fecha}')">
-      <div class="hh-dia-num">${d}</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div class="hh-dia-num">${d}</div>
+        ${parte?.hora_fichaje?`<div style="font-size:9px;color:#999;font-weight:600;font-family:'Barlow Condensed',sans-serif;line-height:1;margin-top:2px">${parte.hora_fichaje}</div>`:''}
+      </div>
       ${contenido}
     </div>`;
   }
