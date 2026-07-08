@@ -326,6 +326,13 @@
             <input type="month" class="ci" id="hh-mes" onchange="cargarHojaHoras()"/>
           </div>
         </div>
+        <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <label class="btn" style="background:#2980b9;color:white;cursor:pointer;display:inline-block">
+            📥 IMPORTAR FICHAJES
+            <input type="file" accept=".xlsx" style="display:none" onchange="importarFichajes(this)"/>
+          </label>
+          <div id="hh-import-status" style="font-size:13px;color:var(--txt2)"></div>
+        </div>
       </div>
       <div id="hh-contenido"></div>
     </div>
@@ -2421,9 +2428,13 @@ async function cargarHojaHoras(){
   const desde=`${hhMes}-01`;
   const hasta=`${hhMes}-${String(diasDelMes).padStart(2,'0')}`;
 
-  // Cargar partes del trabajador en el mes
-  const r=await fetch(`${SU}/rest/v1/partes?select=*,partes_obras(*,obras(id,nombre,numero))&trabajador_id=eq.${hhTrabId}&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc`,{headers:H});
-  hhPartesDelMes=await r.json();
+  // Cargar partes y fichajes en paralelo
+  const [rPartes,rFich]=await Promise.all([
+    fetch(`${SU}/rest/v1/partes?select=*,partes_obras(*,obras(id,nombre,numero))&trabajador_id=eq.${hhTrabId}&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc`,{headers:H}),
+    fetch(`${SU}/rest/v1/fichajes?trabajador_id=eq.${hhTrabId}&fecha=gte.${desde}&fecha=lte.${hasta}`,{headers:H})
+  ]);
+  hhPartesDelMes=await rPartes.json();
+  hhFichajes=await rFich.json();
 
   renderHojaHoras(anio, mesNum, diasDelMes);
 }
@@ -2468,6 +2479,7 @@ function renderHojaHoras(anio, mesNum, diasDelMes){
     const esFinde=diaSem===0||diaSem===6;
     const esFest=festivos.includes(fecha);
     const parte=hhPartesDelMes.find(p=>p.fecha===fecha);
+    const fichajeDia=hhFichajes.find(f=>f.fecha===fecha);
 
     let clases='hh-dia';
     if(esFinde||esFest) clases+=' finde';
@@ -2500,6 +2512,9 @@ function renderHojaHoras(anio, mesNum, diasDelMes){
         <div class="hh-dia-num">${d}</div>
         ${parte?.hora_fichaje?`<div style="font-size:9px;color:#999;font-weight:600;font-family:'Barlow Condensed',sans-serif;line-height:1;margin-top:2px">${parte.hora_fichaje}</div>`:''}
       </div>
+      ${fichajeDia?`<div style="font-size:9px;font-weight:700;font-family:'Barlow Condensed',sans-serif;color:#2980b9;line-height:1.4;margin-bottom:2px">
+        ${fichajeDia.hora_entrada?`▶ ${fichajeDia.hora_entrada}`:''}${fichajeDia.hora_salida?` ◀ ${fichajeDia.hora_salida}`:''}
+      </div>`:''}
       ${contenido}
     </div>`;
   }
@@ -2722,6 +2737,141 @@ async function borrarParteDia(){
   toast('Parte eliminado ✓',true);
   cerrarModalDia();
   await cargarHojaHoras();
+}
+
+// ─── IMPORTAR FICHAJES ───────────────────────────────────
+let hhFichajes=[]; // fichajes del mes cargado
+
+// Normalizar nombre para comparación
+function normNombre(s){
+  return s.toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^A-Z\s]/g,'').trim()
+    .split(/\s+/).sort().join(' ');
+}
+
+// Invertir orden nombre→apellidos para comparar con nuestra app
+function invertirNombre(nombreCompleto){
+  // Excel: "CRISTINA LOPEZ MARTIN" → intentar "LOPEZ MARTIN CRISTINA"
+  // Asumimos que el nombre es la primera palabra(s) y apellidos el resto
+  // Probamos todas las combinaciones posibles
+  const partes=nombreCompleto.trim().toUpperCase().split(/\s+/);
+  const combinaciones=[];
+  for(let i=1;i<partes.length;i++){
+    const nombre=partes.slice(0,i).join(' ');
+    const apellidos=partes.slice(i).join(' ');
+    combinaciones.push(apellidos+' '+nombre);
+  }
+  return combinaciones;
+}
+
+function buscarTrabajadorPorNombre(nombreExcel){
+  const combinaciones=invertirNombre(nombreExcel);
+  let mejorMatch=null, mejorScore=0;
+  trabs.forEach(t=>{
+    const normT=normNombre(t.nombre);
+    combinaciones.forEach(comb=>{
+      const normC=normNombre(comb);
+      // Contar palabras en común
+      const pT=new Set(normT.split(' '));
+      const pC=new Set(normC.split(' '));
+      const comunes=[...pT].filter(p=>pC.has(p)).length;
+      const score=comunes/(Math.max(pT.size,pC.size));
+      if(score>mejorScore){mejorScore=score;mejorMatch=t;}
+    });
+  });
+  return mejorScore>=0.7?mejorMatch:null;
+}
+
+async function importarFichajes(input){
+  const file=input.files[0];
+  if(!file) return;
+  const status=document.getElementById('hh-import-status');
+  status.textContent='Leyendo Excel...';
+
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const filas=XLSX.utils.sheet_to_json(ws,{header:1});
+
+    // Cabecera: EMPRESA,CENTRO,DEPARTAMENTO,EMPLEADO,ID RR.HH.,FECHA,HORA,E/S,INCIDENCIA,TERMINAL
+    const IDX={emp:3,fecha:5,hora:6,es:7};
+
+    // Agrupar por empleado+fecha → entrada y salida
+    const mapa={};
+    filas.slice(1).forEach(row=>{
+      const nombre=row[IDX.emp]?.toString().trim().toUpperCase();
+      const fecha=row[IDX.fecha]?.toString().trim(); // "08-07-2026"
+      const hora=row[IDX.hora]?.toString().trim().slice(0,5); // "07:02"
+      const es=row[IDX.es]?.toString().trim().toUpperCase();
+      if(!nombre||!fecha||!hora) return;
+
+      // Convertir fecha DD-MM-YYYY → YYYY-MM-DD
+      const partesFecha=fecha.split('-');
+      const fechaISO=partesFecha.length===3?
+        `${partesFecha[2]}-${partesFecha[1]}-${partesFecha[0]}`:fecha;
+
+      const key=`${nombre}|${fechaISO}`;
+      if(!mapa[key]) mapa[key]={nombre,fecha:fechaISO,entrada:null,salida:null};
+      if(es==='E'&&(!mapa[key].entrada||hora<mapa[key].entrada)) mapa[key].entrada=hora;
+      if(es==='S'&&(!mapa[key].salida||hora>mapa[key].salida)) mapa[key].salida=hora;
+    });
+
+    // Cruzar con trabajadores
+    let ok=0,noEncontrados=[];
+    const inserts=[];
+    const procesados=new Set();
+
+    Object.values(mapa).forEach(f=>{
+      const trab=buscarTrabajadorPorNombre(f.nombre);
+      if(!trab){noEncontrados.push(f.nombre);return;}
+      const key=`${trab.id}|${f.fecha}`;
+      if(procesados.has(key)) return;
+      procesados.add(key);
+      inserts.push({trabajador_id:trab.id,fecha:f.fecha,hora_entrada:f.entrada,hora_salida:f.salida});
+      ok++;
+    });
+
+    // Borrar fichajes existentes del mismo rango y reinsertar
+    if(inserts.length){
+      const fechas=[...new Set(inserts.map(i=>i.fecha))];
+      const fMin=fechas.sort()[0];
+      const fMax=fechas[fechas.length-1];
+
+      await fetch(`${SU}/rest/v1/fichajes?fecha=gte.${fMin}&fecha=lte.${fMax}`,{
+        method:'DELETE',headers:H
+      });
+
+      // Insertar en lotes de 50
+      for(let i=0;i<inserts.length;i+=50){
+        await fetch(`${SU}/rest/v1/fichajes`,{
+          method:'POST',headers:{...H,'Prefer':'return=minimal'},
+          body:JSON.stringify(inserts.slice(i,i+50))
+        });
+      }
+    }
+
+    let msg=`✅ ${ok} fichajes importados`;
+    if(noEncontrados.length) msg+=` · ⚠️ ${noEncontrados.length} no encontrados: ${[...new Set(noEncontrados)].slice(0,3).join(', ')}${noEncontrados.length>3?'...':''}`;
+    status.innerHTML=`<span style="color:${noEncontrados.length?'var(--amarillo)':'#27ae60'}">${msg}</span>`;
+
+    // Recargar calendario si hay uno activo
+    if(hhTrabId&&hhMes) await cargarHojaHoras();
+
+  } catch(e){
+    status.innerHTML=`<span style="color:var(--rojo)">Error: ${e.message}</span>`;
+  }
+  input.value='';
+}
+
+async function cargarFichajesMes(trabId, mes){
+  const [anio,mesNum]=mes.split('-');
+  const diasDelMes=new Date(parseInt(anio),parseInt(mesNum),0).getDate();
+  const desde=`${mes}-01`;
+  const hasta=`${mes}-${String(diasDelMes).padStart(2,'0')}`;
+  const r=await fetch(`${SU}/rest/v1/fichajes?trabajador_id=eq.${trabId}&fecha=gte.${desde}&fecha=lte.${hasta}`,{headers:H});
+  return await r.json();
 }
 
 // ─── CONTROL DE ASISTENCIA ───────────────────────────────
