@@ -2489,11 +2489,12 @@ function renderHojaHoras(anio, mesNum, diasDelMes){
     let contenido='';
     if(parte){
       const totalH=(parte.partes_obras||[]).reduce((s,o)=>s+(o.horas||0),0);
+      const totalHMostrar=(totalH>=12&&convenio===11)?totalH-1:totalH;
       const inc=parte.tipo_incidencia;
       if(inc==='VACACIONES') contenido=`<div class="hh-badge vac" style="font-size:11px;padding:3px 6px">🏖️ VAC</div>`;
       else if(inc==='MEDICO') contenido=`<div class="hh-badge med" style="font-size:11px;padding:3px 6px">🏥 MED</div>`;
       else{
-        contenido=`<div class="hh-dia-horas">${totalH}h</div>`;
+        contenido=`<div class="hh-dia-horas">${totalHMostrar}h</div>`;
         const obras=(parte.partes_obras||[]).map(o=>`${o.obras?.numero||''}${o.obras?.numero?' ':''}${o.obras?.nombre||''}: ${o.horas}h`).join('<br>');
         contenido+=`<div class="hh-dia-obras">${obras}</div>`;
         contenido+='<div class="hh-dia-badges">';
