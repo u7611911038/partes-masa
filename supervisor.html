@@ -981,7 +981,7 @@ function renderDia(partes){
       <td>${rm[p.reten]||'—'}</td>
       <td>${p.llamadas>0?`<span class="ba bro">${p.llamadas}</span>`:'0'}</td>
       <td>${eBadge(p)}</td>
-      <td style="white-space:nowrap">${eBtns(p)}</td>
+      <td style="white-space:nowrap">${eBtns(p)}${p.latitud?`<a href="https://maps.google.com/?q=${p.latitud},${p.longitud}" target="_blank" title="${p.zona_fichaje||'Ver ubicación'}" style="margin-left:4px;font-size:15px;text-decoration:none">📍</a>`:''}</td>
     </tr>`;
   });
   h+='</tbody></table></div></div>';
@@ -1032,7 +1032,7 @@ function renderTrab(partes){
         <td>${pl.map(x=>`<span class="ba bam">${x}</span>`).join('')||'—'}</td>
         <td>${rm[p.reten]||'—'}${p.llamadas>0?` <span class="ba bro">${p.llamadas}llam</span>`:''}</td>
         <td>${eBadge(p)}</td>
-        <td style="white-space:nowrap">${eBtns(p)}</td>
+        <td style="white-space:nowrap">${eBtns(p)}${p.latitud?`<a href="https://maps.google.com/?q=${p.latitud},${p.longitud}" target="_blank" title="${p.zona_fichaje||'Ver ubicación'}" style="margin-left:4px;font-size:15px;text-decoration:none">📍</a>`:''}</td>
       </tr>`;
     });
     html+='</tbody></table></div></div>';
@@ -2236,8 +2236,8 @@ async function enviarParteJefe(){
 
 // ─── PARTE MANUAL (DESCANSO / SALIENTE) ──────────────────
 const ZONAS_SUPERVISOR = [
-  { nombre: 'MASA Puertollano',   lat: 38.667512,  lon: -4.063133,  radio: 150 },
-  { nombre: 'MASA Puertollano 2', lat: 38.6795718, lon: -4.0693399, radio: 150 },
+  { nombre: 'MASA RLESA',        lat: 38.667512,  lon: -4.063133,  radio: 150 },
+  { nombre: 'MASA PUERTOLLANO',  lat: 38.6795718, lon: -4.0693399, radio: 150 },
 ];
 
 function distSup(lat1,lon1,lat2,lon2){
