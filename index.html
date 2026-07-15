@@ -1001,6 +1001,11 @@ function verificarGeo() {
       const zonaOk = ZONAS_PERMITIDAS.find(z => distanciaMetros(latitude, longitude, z.lat, z.lon) <= z.radio);
 
       if (zonaOk) {
+        // Guardar para enviar con el parte
+        window._geoLat = latitude;
+        window._geoLon = longitude;
+        window._geoZona = zonaOk.nombre;
+
         document.getElementById('geo-icono').textContent = '✅';
         document.getElementById('geo-titulo').textContent = '¡Ubicación verificada!';
         document.getElementById('geo-estado').className = 'geo-estado geo-ok';
@@ -1396,7 +1401,10 @@ async function enviarParte() {
         total_horas: totalHoras,
         horas_normales: horasNormales,
         horas_extra: horasExtra,
-        hora_fichaje: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
+        hora_fichaje: new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}),
+        latitud: window._geoLat||null,
+        longitud: window._geoLon||null,
+        zona_fichaje: window._geoZona||null
       })
     });
 
