@@ -351,6 +351,30 @@
     <input type="hidden" id="dia-trabajador-id"/>
     <input type="hidden" id="dia-parte-id"/>
 
+    <!-- Acceso rápido incidencias (solo días sin parte) -->
+    <div id="dia-acceso-rapido" style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--txt2);letter-spacing:1px;margin-bottom:8px">ACCESO RÁPIDO</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="crearIncidenciaRapida('VACACIONES')"
+          style="flex:1;padding:10px 6px;border:2px solid #27ae60;border-radius:8px;background:#eafaf1;color:#1e8449;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer">
+          🏖️ VACACIONES
+        </button>
+        <button onclick="crearIncidenciaRapida('SALIENTE')"
+          style="flex:1;padding:10px 6px;border:2px solid #2980b9;border-radius:8px;background:#eaf4fb;color:#1a5276;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer">
+          🌙 SALIENTE
+        </button>
+        <button onclick="crearIncidenciaRapida('DESCANSO')"
+          style="flex:1;padding:10px 6px;border:2px solid #e67e22;border-radius:8px;background:#fef9ee;color:#7d4e00;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer">
+          😴 DESCANSO
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin:14px 0 4px">
+        <div style="flex:1;height:1px;background:var(--borde)"></div>
+        <div style="font-size:11px;color:var(--txt2);font-weight:600">O CREAR PARTE MANUAL</div>
+        <div style="flex:1;height:1px;background:var(--borde)"></div>
+      </div>
+    </div>
+
     <!-- Turno -->
     <div style="margin-bottom:16px">
       <label class="cl2">Turno</label>
@@ -2236,8 +2260,8 @@ async function enviarParteJefe(){
 
 // ─── PARTE MANUAL (DESCANSO / SALIENTE) ──────────────────
 const ZONAS_SUPERVISOR = [
-  { nombre: 'MASA RLESA',        lat: 38.667512,  lon: -4.063133,  radio: 50 },
-  { nombre: 'MASA PUERTOLLANO',  lat: 38.6795718, lon: -4.0693399, radio: 50 },
+  { nombre: 'MASA RLESA',        lat: 38.667512,  lon: -4.063133,  radio: 150 },
+  { nombre: 'MASA PUERTOLLANO',  lat: 38.6795718, lon: -4.0693399, radio: 150 },
 ];
 
 function distSup(lat1,lon1,lat2,lon2){
@@ -2493,6 +2517,8 @@ function renderHojaHoras(anio, mesNum, diasDelMes){
       const inc=parte.tipo_incidencia;
       if(inc==='VACACIONES') contenido=`<div class="hh-badge vac" style="font-size:11px;padding:3px 6px">🏖️ VAC</div>`;
       else if(inc==='MEDICO') contenido=`<div class="hh-badge med" style="font-size:11px;padding:3px 6px">🏥 MED</div>`;
+      else if(inc==='SALIENTE') contenido=`<div class="hh-badge" style="font-size:11px;padding:3px 6px;background:#d6eaf8;color:#1a5276">🌙 SAL</div>`;
+      else if(inc==='DESCANSO') contenido=`<div class="hh-badge" style="font-size:11px;padding:3px 6px;background:#fdebd0;color:#7d4e00">😴 DESC</div>`;
       else{
         contenido=`<div class="hh-dia-horas">${totalHMostrar}h</div>`;
         const obras=(parte.partes_obras||[]).map(o=>`${o.obras?.numero||''}${o.obras?.numero?' ':''}${o.obras?.nombre||''}: ${o.horas}h`).join('<br>');
@@ -2545,6 +2571,7 @@ function abrirDia(fecha){
   document.getElementById('dia-trabajador-id').value=hhTrabId;
   document.getElementById('dia-parte-id').value=parte?.id||'';
   document.getElementById('dia-btn-borrar').style.display=parte?'inline-block':'none';
+  document.getElementById('dia-acceso-rapido').style.display=parte?'none':'block';
 
   // Turno
   document.getElementById('dia-turno').value=parte?.turno||'mañana';
@@ -2635,6 +2662,39 @@ function adjLlamDia(d){
   document.getElementById('dia-llamadas').value=v;
   document.getElementById('dia-llamadas-display').textContent=v;
   diaActualizarInfo();
+}
+
+async function crearIncidenciaRapida(tipo){
+  const fecha=document.getElementById('dia-fecha').value;
+  const trabId=parseInt(document.getElementById('dia-trabajador-id').value);
+  try{
+    const r=await fetch(`${SU}/rest/v1/partes`,{
+      method:'POST',
+      headers:{...H,'Prefer':'return=minimal'},
+      body:JSON.stringify({
+        trabajador_id:trabId, fecha,
+        turno:'especial',
+        plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,
+        reten:'ninguno',llamadas:0,
+        total_horas:0,horas_normales:0,horas_extra:0,
+        tipo_incidencia:tipo,
+        dieta:'ninguna',
+        validado_jefe_equipo:true,
+        validado_jefe_obra:true
+      })
+    });
+    if(!r.ok){
+      const e=await r.json();
+      if(e.code==='23505'){toast('Ya existe un parte para ese día',false);}
+      else toast('Error al crear incidencia',false);
+      return;
+    }
+    toast(`${tipo==='VACACIONES'?'🏖️':tipo==='SALIENTE'?'🌙':'😴'} ${tipo} registrado ✓`,true);
+    cerrarModalDia();
+    await cargarHojaHoras();
+  } catch(e){
+    toast('Error: '+e.message,false);
+  }
 }
 
 async function guardarParteDia(){
