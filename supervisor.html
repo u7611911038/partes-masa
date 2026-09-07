@@ -2260,10 +2260,8 @@ async function enviarParteJefe(){
 
 // ─── PARTE MANUAL (DESCANSO / SALIENTE) ──────────────────
 const ZONAS_SUPERVISOR = [
-  { nombre: 'MASA RLESA',        lat: 38.667512,  lon: -4.063133,  radio: 50 },
-  { nombre: 'MASA PUERTOLLANO',  lat: 38.6795718, lon: -4.0693399, radio: 50 },
-   { nombre: 'HEXCEL', lat: 40.2388333, lon: -3.7454444, radio: 400 },
-  { nombre: 'LUGO', lat: 42.9600686, lon: -7.5045529, radio: 300 },
+  { nombre: 'MASA RLESA',        lat: 38.667512,  lon: -4.063133,  radio: 150 },
+  { nombre: 'MASA PUERTOLLANO',  lat: 38.6795718, lon: -4.0693399, radio: 150 },
 ];
 
 function distSup(lat1,lon1,lat2,lon2){
@@ -2793,13 +2791,20 @@ async function guardarParteDia(){
 
 async function borrarParteDia(){
   const parteId=document.getElementById('dia-parte-id').value;
-  if(!parteId) return;
+  if(!parteId){toast('No hay parte para borrar',false);return;}
   if(!confirm('¿Seguro que quieres borrar este parte?')) return;
-  await fetch(`${SU}/rest/v1/partes_obras?parte_id=eq.${parteId}`,{method:'DELETE',headers:H});
-  await fetch(`${SU}/rest/v1/partes?id=eq.${parteId}`,{method:'DELETE',headers:H});
-  toast('Parte eliminado ✓',true);
-  cerrarModalDia();
-  await cargarHojaHoras();
+  try{
+    // Borrar obras primero (si las hay) — ignorar error si no hay
+    await fetch(`${SU}/rest/v1/partes_obras?parte_id=eq.${parteId}`,{method:'DELETE',headers:H});
+    // Borrar el parte
+    const r=await fetch(`${SU}/rest/v1/partes?id=eq.${parteId}`,{method:'DELETE',headers:H});
+    if(!r.ok){toast('Error al borrar el parte',false);return;}
+    toast('Parte eliminado ✓',true);
+    cerrarModalDia();
+    await cargarHojaHoras();
+  } catch(e){
+    toast('Error: '+e.message,false);
+  }
 }
 
 // ─── IMPORTAR FICHAJES ───────────────────────────────────
