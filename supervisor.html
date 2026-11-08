@@ -2548,6 +2548,9 @@ function renderHojaHoras(anio, mesNum, diasDelMes){
         contenido+='<div class="hh-dia-badges">';
         if(parte.plus_entrada) contenido+='<span class="hh-badge entr">ENT</span>';
         if(parte.plus_nocturnidad) contenido+='<span class="hh-badge noct">NOC</span>';
+        if(parte.plus_turnicidad) contenido+='<span class="hh-badge" style="background:#2980b9;color:white">TUR</span>';
+        if(parte.plus_taller) contenido+='<span class="hh-badge" style="background:#27ae60;color:white">TAL</span>';
+        if(parte.plus_parada) contenido+='<span class="hh-badge" style="background:#8e44ad;color:white">PAR</span>';
         if(parte.dieta==='media') contenido+='<span class="hh-badge diet">½D</span>';
         if(parte.dieta==='completa') contenido+='<span class="hh-badge diet">D</span>';
         contenido+='</div>';
