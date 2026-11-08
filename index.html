@@ -884,6 +884,12 @@
             <div class="plus-bloqueado-msg" id="msg-taller"></div>
           </div>
         </div>
+        <div class="plus-item" id="plus-parada" onclick="togglePlus('parada')">
+          <div class="plus-check" id="check-parada"></div>
+          <div>
+            <div class="plus-nombre">Parada</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -968,13 +974,13 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // ─── GEOLOCALIZACIÓN ──────────────────────────────────────
 // Zonas permitidas: MASA Puertollano + casa pruebas Ciudad Real
 const ZONAS_PERMITIDAS = [
-  { nombre: 'RLESA',                   lat: 38.667512,   lon: -4.063133,   radio: 300 },
+  { nombre: 'RLESA',                   lat: 38.667512,   lon: -4.063133,   radio: 150 },
   { nombre: 'MASA Puertollano',        lat: 38.6795718,  lon: -4.0693399,  radio: 150 },
   { nombre: 'Pruebas Ciudad Real',     lat: 38.9852451,  lon: -3.9211868,  radio: 200 },
-   { nombre: 'HEXCEL', lat: 40.2388333, lon: -3.7454444, radio: 400 },
-  { nombre: 'LUGO', lat: 42.9600686, lon: -7.5045529, radio: 300 },
-    { nombre: 'TARRAGONA', lat: 41.107277, lon: 1.193405, radio: 200 },
-  { nombre: 'CARTAGENA', lat: 37.578163, lon: -0.913219, radio: 200 },
+  { nombre: 'HEXCEL',                  lat: 40.2388333,  lon: -3.7454444,  radio: 400 },
+  { nombre: 'LUGO',                    lat: 42.9600686,  lon: -7.5045529,  radio: 300 },
+  { nombre: 'TARRAGONA',               lat: 41.107277,   lon: 1.193405,    radio: 200 },
+  { nombre: 'CARTAGENA',               lat: 37.578163,   lon: -0.913219,   radio: 200 },
 ];
 
 function distanciaMetros(lat1, lon1, lat2, lon2) {
@@ -1061,7 +1067,7 @@ let turnoSeleccionado = null;
 let retenSeleccionado = 'ninguno';
 let retenAbierto = false;
 let llamadas = 0;
-let pluses = { nocturnidad: false, turnicidad: false, entrada: false, taller: false };
+let pluses = { nocturnidad: false, turnicidad: false, entrada: false, taller: false, parada: false };
 let dietaSeleccionada = 'ninguna';
 let esDiaEspecial = false; // fin de semana o festivo
 let obrasLineas = [];
@@ -1399,6 +1405,7 @@ async function enviarParte() {
         plus_turnicidad: pluses.turnicidad,
         plus_entrada: pluses.entrada,
         plus_taller: pluses.taller,
+        plus_parada: pluses.parada,
         dieta: dietaSeleccionada,
         reten: retenSeleccionado,
         llamadas: llamadas,
@@ -1460,7 +1467,7 @@ function resetFormulario() {
   retenSeleccionado = 'ninguno';
   retenAbierto = false;
   llamadas = 0;
-  pluses = { nocturnidad: false, turnicidad: false, entrada: false, taller: false };
+  pluses = { nocturnidad: false, turnicidad: false, entrada: false, taller: false, parada: false };
   dietaSeleccionada = 'ninguna';
   seleccionarDieta('ninguna');
   obrasLineas = [];
