@@ -402,6 +402,7 @@
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         <div class="pp-dia" data-plus="plus_entrada" onclick="togglePlusDia(this)" style="padding:8px 14px;border:2px solid var(--borde);border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;background:white">Entrada Complejo</div>
         <div class="pp-dia" data-plus="plus_taller" onclick="togglePlusDia(this)" style="padding:8px 14px;border:2px solid var(--borde);border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;background:white">Plus Taller</div>
+        <div class="pp-dia" data-plus="plus_parada" onclick="togglePlusDia(this)" style="padding:8px 14px;border:2px solid var(--borde);border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;background:white">Parada</div>
         <div class="pp-dia" data-plus="plus_nocturnidad" onclick="togglePlusDia(this)" style="padding:8px 14px;border:2px solid var(--borde);border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;background:white">Nocturnidad</div>
         <div class="pp-dia" data-plus="plus_turnicidad" onclick="togglePlusDia(this)" style="padding:8px 14px;border:2px solid var(--borde);border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;background:white">Turnicidad</div>
       </div>
@@ -605,6 +606,13 @@
           </select>
         </div>
         <div>
+          <label class="cl2">Parada</label>
+          <select class="ci" id="pj-para">
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div>
           <label class="cl2">Retén</label>
           <select class="ci" id="pj-reten">
             <option value="ninguno">Ninguno</option>
@@ -734,6 +742,7 @@
         <div class="pp" data-p="turnicidad" onclick="this.classList.toggle('on')">Turnicidad</div>
         <div class="pp" data-p="entrada" onclick="this.classList.toggle('on')">Entrada al Complejo</div>
         <div class="pp" data-p="taller" onclick="this.classList.toggle('on')">Plus Taller</div>
+        <div class="pp" data-p="parada" onclick="this.classList.toggle('on')">Parada</div>
       </div>
     </div>
     <div class="sm">
@@ -987,6 +996,7 @@ function renderDia(partes){
     if(p.plus_turnicidad)pl.push('<span class="ba baz">TURN</span>');
     if(p.plus_entrada)pl.push('<span class="ba bam">ENTR</span>');
     if(p.plus_taller)pl.push('<span class="ba bam">TALL</span>');
+    if(p.plus_parada)pl.push('<span class="ba" style="background:#8e44ad;color:white">PAR</span>');
     if(p.dieta==='media')pl.push('<span class="ba" style="background:#e67e22">½DIETA</span>');
     if(p.dieta==='completa')pl.push('<span class="ba" style="background:#e67e22">DIETA</span>');
     if(p.tipo_incidencia==='VACACIONES')pl.push('<span class="ba" style="background:#27ae60">VAC</span>');
@@ -1040,6 +1050,7 @@ function renderTrab(partes){
       const pl=[];
       if(p.plus_nocturnidad)pl.push('NOCT');if(p.plus_turnicidad)pl.push('TURN');
       if(p.plus_entrada)pl.push('ENTR');if(p.plus_taller)pl.push('TALL');
+      if(p.plus_parada)pl.push('PAR');
       if(p.dieta==='media')pl.push('½DIETA');
       if(p.dieta==='completa')pl.push('DIETA');
       if(p.tipo_incidencia==='VACACIONES')pl.push('VAC');
@@ -1119,6 +1130,7 @@ function abrirModal(id){
   document.getElementById('m-ln').textContent=lm;
 
   document.querySelectorAll('.pp').forEach(pill=>pill.classList.toggle('on',!!p['plus_'+pill.dataset.p]));
+  document.querySelector('[data-p="parada"]')?.classList.toggle('on',!!p.plus_parada);
   document.querySelectorAll('.rp[data-r]').forEach(pill=>pill.classList.toggle('on',pill.dataset.r===(p.reten||'ninguno')));
   document.querySelectorAll('.rp[data-d]').forEach(pill=>pill.classList.toggle('on',pill.dataset.d===(p.dieta||'ninguna')));
 
@@ -1266,6 +1278,7 @@ async function guardar(){
   const pT=document.querySelector('[data-p="turnicidad"]').classList.contains('on');
   const pE=document.querySelector('[data-p="entrada"]').classList.contains('on');
   const pTa=document.querySelector('[data-p="taller"]').classList.contains('on');
+  const pPar=document.querySelector('[data-p="parada"]').classList.contains('on');
   const ret=document.querySelector('.rp.on[data-r]')?.dataset.r||'ninguno';
   const dieta=document.querySelector('.rp.on[data-d]')?.dataset.d||'ninguna';
 
@@ -1277,7 +1290,7 @@ async function guardar(){
       fecha:fechaEdit,
       turno:document.getElementById('m-turno').value,
       llamadas:lm, reten:ret, dieta,
-      plus_nocturnidad:pN, plus_turnicidad:pT, plus_entrada:pE, plus_taller:pTa,
+      plus_nocturnidad:pN, plus_turnicidad:pT, plus_entrada:pE, plus_taller:pTa, plus_parada:pPar,
       total_horas:total, horas_normales:hn, horas_extra:he,
       validado_jefe_equipo:false, validado_jefe_obra:false
     })
@@ -1457,6 +1470,7 @@ async function xlsObras(){
         'Plus Turnicidad':p.plus_turnicidad?'SÍ':'',
         'Plus Entrada':p.plus_entrada?'SÍ':'',
         'Plus Taller':p.plus_taller?'SÍ':'',
+        'Plus Parada':p.plus_parada?'SÍ':'',
         'Retén':p.reten!=='ninguno'?p.reten:'',
         'Llamadas Retén':p.llamadas||0,
         'Estado':p.validado_jefe_obra?'Aprobado':p.validado_jefe_equipo?'Supervisor OK':'Pendiente',
@@ -1541,7 +1555,7 @@ async function xlsNominas(){
   wsRes.views=[{showGridLines:false}];
 
   // Cabecera RESUMEN
-  wsRes.mergeCells(1,1,1,13);
+  wsRes.mergeCells(1,1,1,14);
   const titRes=wsRes.getCell(1,1);
   titRes.value='MASA — RESUMEN DE NÓMINAS  |  '+mesNombre+' '+anio;
   titRes.font={bold:true,name:'Arial',size:12,color:{argb:'FF'+BLANCO}};
@@ -1549,7 +1563,7 @@ async function xlsNominas(){
   titRes.alignment={horizontal:'center',vertical:'middle'};
   wsRes.getRow(1).height=24;
 
-  const cabecerasRes=['Trabajador','Días','H. Normales','H. Extra','Nocturnidad','Turnicidad','Entrada Complejo','Plus Taller','Retén Diario','Retén Fin Sem','Retén Festivo','Retén Semanal','Llamadas'];
+  const cabecerasRes=['Trabajador','Días','H. Normales','H. Extra','Nocturnidad','Turnicidad','Entrada Complejo','Plus Taller','Plus Parada','Retén Diario','Retén Fin Sem','Retén Festivo','Retén Semanal','Llamadas'];
   cabecerasRes.forEach((h,i)=>{
     const c=wsRes.getCell(2,i+1);
     c.value=h; c.font={bold:true,name:'Arial',size:9,color:{argb:'FF'+BLANCO}};
@@ -1570,6 +1584,7 @@ async function xlsNominas(){
       pts.filter(p=>p.plus_turnicidad).length,
       pts.filter(p=>p.plus_entrada).length,
       pts.filter(p=>p.plus_taller).length,
+      pts.filter(p=>p.plus_parada).length,
       pts.filter(p=>p.reten==='diario').length,
       pts.filter(p=>p.reten==='fin_de_semana').length,
       pts.filter(p=>p.reten==='festivo').length,
@@ -1775,6 +1790,7 @@ async function xlsNominas(){
       {label:'PLUS TALLER',        fn:(p)=>p.plus_taller?'1':'',   bg:AMARILLO_CLARO},
       {label:'NOCTURNIDAD',        fn:(p)=>p.plus_nocturnidad?'1':'', bg:GRIS},
       {label:'TURNICIDAD',         fn:(p)=>p.plus_turnicidad?'1':'',  bg:GRIS},
+      {label:'PARADA',             fn:(p)=>p.plus_parada?'1':'',         bg:GRIS},
       {label:'MEDIA DIETA',        fn:(p)=>p.dieta==='media'?'1':'',     bg:AMARILLO_CLARO},
       {label:'DIETA COMPLETA',     fn:(p)=>p.dieta==='completa'?'1':'',  bg:AMARILLO_CLARO},
     ];
@@ -1817,6 +1833,7 @@ async function xlsNominas(){
       ['Nº DE LLAMADAS',  ptsOrdenados.reduce((s,p)=>s+(p.llamadas||0),0),                        BLANCO],
       ['ENTRADA COMPLEJO',ptsOrdenados.filter(p=>p.plus_entrada).length+' días',                  AMARILLO_CLARO],
       ['PLUS TALLER',     ptsOrdenados.filter(p=>p.plus_taller).length+' días',                   AMARILLO_CLARO],
+      ['PARADA',          ptsOrdenados.filter(p=>p.plus_parada).length+' días',                    GRIS],
       ['NOCTURNIDAD',     ptsOrdenados.filter(p=>p.plus_nocturnidad).length+' días',              GRIS],
       ['TURNICIDAD',      ptsOrdenados.filter(p=>p.plus_turnicidad).length+' días',               GRIS],
       ['MEDIA DIETA',     ptsOrdenados.filter(p=>p.dieta==='media').length+' días',               AMARILLO_CLARO],
@@ -2170,7 +2187,7 @@ async function enviarParteJefe(){
             trabajador_id:parseInt(trabId),
             fecha,
             turno:'especial',
-            plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,
+            plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,plus_parada:false,
             reten:'ninguno',llamadas:0,
             total_horas:0,horas_normales:0,horas_extra:0,
             tipo_incidencia:etiqueta,
@@ -2198,6 +2215,7 @@ async function enviarParteJefe(){
   const turn=document.getElementById('pj-turn').value==='si';
   const entr=document.getElementById('pj-entr').value==='si';
   const tall=document.getElementById('pj-tall').value==='si';
+  const para=document.getElementById('pj-para').value==='si';
 
   // Recoger obras
   const lineasObra=[];
@@ -2224,7 +2242,7 @@ async function enviarParteJefe(){
       body:JSON.stringify({
         trabajador_id:parseInt(trabId),
         fecha,turno,
-        plus_nocturnidad:noct,plus_turnicidad:turn,plus_entrada:entr,plus_taller:tall,
+        plus_nocturnidad:noct,plus_turnicidad:turn,plus_entrada:entr,plus_taller:tall,plus_parada:para,
         reten,llamadas,
         total_horas:total,horas_normales:hn,horas_extra:he,
         tipo_incidencia:'OLVIDO',
@@ -2260,10 +2278,12 @@ async function enviarParteJefe(){
 
 // ─── PARTE MANUAL (DESCANSO / SALIENTE) ──────────────────
 const ZONAS_SUPERVISOR = [
-  { nombre: 'MASA RLESA',        lat: 38.667512,  lon: -4.063133,  radio: 300 },
-  { nombre: 'MASA PUERTOLLANO',  lat: 38.6795718, lon: -4.0693399, radio: 150 },
-  { nombre: 'TARRAGONA', lat: 41.107277, lon: 1.193405, radio: 200 },
-  { nombre: 'CARTAGENA', lat: 37.578163, lon: -0.913219, radio: 200 },
+  { nombre: 'MASA RLESA',        lat: 38.667512,   lon: -4.063133,   radio: 150 },
+  { nombre: 'MASA PUERTOLLANO',  lat: 38.6795718,  lon: -4.0693399,  radio: 150 },
+  { nombre: 'HEXCEL',            lat: 40.2388333,  lon: -3.7454444,  radio: 400 },
+  { nombre: 'LUGO',              lat: 42.9600686,  lon: -7.5045529,  radio: 300 },
+  { nombre: 'TARRAGONA',         lat: 41.107277,   lon: 1.193405,    radio: 200 },
+  { nombre: 'CARTAGENA',         lat: 37.578163,   lon: -0.913219,   radio: 200 },
 ];
 
 function distSup(lat1,lon1,lat2,lon2){
@@ -2361,7 +2381,7 @@ async function enviarParteManual(){
         trabajador_id:parseInt(trabId),
         fecha:fecha,
         turno:turno,
-        plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,
+        plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,plus_parada:false,
         reten:'ninguno',llamadas:0,
         total_horas:horas,horas_normales:hn,horas_extra:he,
         validado_jefe_equipo:true, // supervisor lo crea ya validado
@@ -2676,7 +2696,7 @@ async function crearIncidenciaRapida(tipo){
       body:JSON.stringify({
         trabajador_id:trabId, fecha,
         turno:'especial',
-        plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,
+        plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,plus_parada:false,
         reten:'ninguno',llamadas:0,
         total_horas:0,horas_normales:0,horas_extra:0,
         tipo_incidencia:tipo,
@@ -2711,6 +2731,7 @@ async function guardarParteDia(){
   const pTurn=document.querySelector('.pp-dia[data-plus="plus_turnicidad"]').classList.contains('activo');
   const pEntr=document.querySelector('.pp-dia[data-plus="plus_entrada"]').classList.contains('activo');
   const pTall=document.querySelector('.pp-dia[data-plus="plus_taller"]').classList.contains('activo');
+  const pPar=document.querySelector('.pp-dia[data-plus="plus_parada"]').classList.contains('activo');
 
   // Recoger obras
   const rows=document.querySelectorAll('#dia-obras-lista > div');
@@ -2733,7 +2754,7 @@ async function guardarParteDia(){
 
   const parteData={
     trabajador_id:trabId, fecha, turno, reten, dieta, llamadas,
-    plus_nocturnidad:pNoct, plus_turnicidad:pTurn, plus_entrada:pEntr, plus_taller:pTall,
+    plus_nocturnidad:pNoct, plus_turnicidad:pTurn, plus_entrada:pEntr, plus_taller:pTall, plus_parada:pPar,
     total_horas:total, horas_normales:hn, horas_extra:he,
     validado_jefe_equipo:true, validado_jefe_obra:true
   };
@@ -3040,7 +3061,7 @@ async function ejecutarBaja(){
           trabajador_id:parseInt(trabId),
           fecha:fechaAsi,
           turno:'especial',
-          plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,
+          plus_nocturnidad:false,plus_turnicidad:false,plus_entrada:false,plus_taller:false,plus_parada:false,
           reten:'ninguno',llamadas:0,
           total_horas:0,horas_normales:0,horas_extra:0,
           tipo_incidencia:etiqueta,
