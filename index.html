@@ -804,7 +804,10 @@
         <div style="font-size:12px;color:var(--gris-texto);letter-spacing:1px;margin-bottom:3px">TRABAJADOR</div>
         <div class="nombre" id="nombre-display"></div>
       </div>
-      <button class="btn-cambiar" onclick="volverInicio()">Cambiar</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="abrirDisponibilidad()" style="background:rgba(39,174,96,0.2);border:1.5px solid #27ae60;color:#27ae60;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px">📅 DISPONIBILIDAD</button>
+        <button class="btn-cambiar" onclick="volverInicio()">Cambiar</button>
+      </div>
     </div>
 
     <div class="aviso-dia" id="aviso-dia"></div>
@@ -961,6 +964,51 @@
     <div class="exito-nombre" id="exito-nombre"></div>
     <div style="color:var(--gris-texto);font-size:14px">El parte ha sido registrado correctamente</div>
     <button class="btn-nuevo-parte" onclick="nuevoParte()">NUEVO PARTE</button>
+  </div>
+
+  <!-- PANTALLA DISPONIBILIDAD -->
+  <div id="pantalla-disponibilidad" style="display:none;padding:20px;max-width:420px;margin:0 auto;width:100%">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <button onclick="cerrarDisponibilidad()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--gris-texto);padding:0">←</button>
+      <div>
+        <div style="font-size:11px;color:var(--gris-texto);letter-spacing:1px">DISPONIBILIDAD</div>
+        <div style="font-weight:700;font-size:17px;color:var(--blanco)" id="disp-nombre-display"></div>
+      </div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--gris-texto);line-height:1.5">
+      📅 Marca los días que <strong style="color:var(--blanco)">puedes quedarte</strong> a hacer horas extra si se necesita.<br>
+      <span style="font-size:12px">Tu jefe lo verá para organizarse sin molestarte si no puedes.</span>
+    </div>
+
+    <!-- Navegación mes -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <button onclick="dispCambiarMes(-1)" style="background:rgba(255,255,255,0.1);border:none;color:var(--blanco);font-size:20px;width:36px;height:36px;border-radius:8px;cursor:pointer">‹</button>
+      <div id="disp-mes-label" style="font-weight:700;font-size:15px;color:var(--blanco);text-transform:uppercase;letter-spacing:1px"></div>
+      <button onclick="dispCambiarMes(1)" style="background:rgba(255,255,255,0.1);border:none;color:var(--blanco);font-size:20px;width:36px;height:36px;border-radius:8px;cursor:pointer">›</button>
+    </div>
+
+    <!-- Cabecera días semana -->
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:var(--gris-texto)">L</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gris-texto)">M</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gris-texto)">X</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gris-texto)">J</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gris-texto)">V</div>
+      <div style="font-size:11px;font-weight:700;color:#e74c3c">S</div>
+      <div style="font-size:11px;font-weight:700;color:#e74c3c">D</div>
+    </div>
+
+    <!-- Calendario -->
+    <div id="disp-calendario" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px"></div>
+
+    <!-- Leyenda -->
+    <div style="display:flex;gap:16px;margin-top:14px;font-size:12px;color:var(--gris-texto)">
+      <div style="display:flex;align-items:center;gap:6px"><div style="width:14px;height:14px;border-radius:4px;background:#27ae60"></div> Disponible</div>
+      <div style="display:flex;align-items:center;gap:6px"><div style="width:14px;height:14px;border-radius:4px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15)"></div> Sin marcar</div>
+    </div>
+
+    <div id="disp-guardando" style="display:none;text-align:center;padding:12px;font-size:13px;color:var(--gris-texto)">💾 Guardando...</div>
   </div>
 
 </div>
@@ -1503,6 +1551,134 @@ function mostrarToast(msg, esError = true) {
   t.textContent = msg;
   t.className = `toast visible${esError ? '' : ' ok'}`;
   setTimeout(() => t.classList.remove('visible'), 3500);
+}
+
+// ─── DISPONIBILIDAD ──────────────────────────────────────────
+let dispAnio = new Date().getFullYear();
+let dispMes  = new Date().getMonth() + 1; // 1-12
+let dispMarcados = new Set(); // fechas 'YYYY-MM-DD' marcadas como disponible
+
+function abrirDisponibilidad() {
+  document.getElementById('pantalla-formulario').style.display = 'none';
+  document.getElementById('pantalla-disponibilidad').style.display = 'block';
+  document.getElementById('disp-nombre-display').textContent = trabajadorSeleccionado.nombre;
+  // Mes actual por defecto
+  const hoy = new Date();
+  dispAnio = hoy.getFullYear();
+  dispMes  = hoy.getMonth() + 1;
+  cargarDisponibilidad();
+}
+
+function cerrarDisponibilidad() {
+  document.getElementById('pantalla-disponibilidad').style.display = 'none';
+  document.getElementById('pantalla-formulario').style.display = 'block';
+}
+
+function dispCambiarMes(delta) {
+  dispMes += delta;
+  if (dispMes > 12) { dispMes = 1;  dispAnio++; }
+  if (dispMes < 1)  { dispMes = 12; dispAnio--; }
+  cargarDisponibilidad();
+}
+
+async function cargarDisponibilidad() {
+  const mesStr = String(dispMes).padStart(2,'0');
+  const desde  = `${dispAnio}-${mesStr}-01`;
+  const diasDelMes = new Date(dispAnio, dispMes, 0).getDate();
+  const hasta  = `${dispAnio}-${mesStr}-${String(diasDelMes).padStart(2,'0')}`;
+
+  const SU = SUPABASE_URL;
+  const H  = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+
+  try {
+    const r = await fetch(`${SU}/rest/v1/disponibilidad?trabajador_id=eq.${trabajadorSeleccionado.id}&fecha=gte.${desde}&fecha=lte.${hasta}`, { headers: H });
+    const data = await r.json();
+    dispMarcados = new Set((data||[]).filter(d=>d.disponible).map(d=>d.fecha));
+  } catch(e) {
+    dispMarcados = new Set();
+  }
+  renderCalendarioDisp(diasDelMes);
+}
+
+function renderCalendarioDisp(diasDelMes) {
+  const mesNombres = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('disp-mes-label').textContent = `${mesNombres[dispMes]} ${dispAnio}`;
+
+  const primerDia = new Date(dispAnio, dispMes-1, 1).getDay();
+  const offset = primerDia === 0 ? 6 : primerDia - 1;
+  const hoy = new Date().toISOString().slice(0,10);
+
+  let html = '';
+  // Celdas vacías
+  for (let i = 0; i < offset; i++) html += '<div></div>';
+
+  for (let d = 1; d <= diasDelMes; d++) {
+    const mesStr = String(dispMes).padStart(2,'0');
+    const dStr   = String(d).padStart(2,'0');
+    const fecha  = `${dispAnio}-${mesStr}-${dStr}`;
+    const dObj   = new Date(fecha + 'T12:00:00');
+    const diaSem = dObj.getDay(); // 0=dom, 6=sab
+    const esFinde = diaSem === 0 || diaSem === 6;
+    const marcado = dispMarcados.has(fecha);
+    const pasado  = fecha < hoy;
+
+    let bg, border, color, cursor;
+    if (marcado) {
+      bg = '#27ae60'; border = '#27ae60'; color = 'white'; cursor = pasado ? 'default' : 'pointer';
+    } else if (pasado) {
+      bg = 'rgba(255,255,255,0.03)'; border = 'rgba(255,255,255,0.05)'; color = 'rgba(255,255,255,0.2)'; cursor = 'default';
+    } else {
+      bg = esFinde ? 'rgba(231,76,60,0.08)' : 'rgba(255,255,255,0.08)';
+      border = esFinde ? 'rgba(231,76,60,0.2)' : 'rgba(255,255,255,0.15)';
+      color = esFinde ? '#e74c3c' : 'var(--blanco)';
+      cursor = 'pointer';
+    }
+
+    const onclick = pasado ? '' : `onclick="toggleDisp('${fecha}')"`;
+    html += `<div ${onclick} style="
+      aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+      border-radius:8px;font-size:14px;font-weight:700;cursor:${cursor};
+      background:${bg};border:1.5px solid ${border};color:${color};
+      transition:all .15s;user-select:none;
+    ">${d}</div>`;
+  }
+  document.getElementById('disp-calendario').innerHTML = html;
+}
+
+async function toggleDisp(fecha) {
+  const SU = SUPABASE_URL;
+  const H  = {
+    'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+  };
+
+  const yaEstaba = dispMarcados.has(fecha);
+  // Optimista: actualizar UI de inmediato
+  if (yaEstaba) dispMarcados.delete(fecha);
+  else           dispMarcados.add(fecha);
+  const diasDelMes = new Date(dispAnio, dispMes, 0).getDate();
+  renderCalendarioDisp(diasDelMes);
+
+  try {
+    if (yaEstaba) {
+      // Eliminar disponibilidad
+      await fetch(`${SU}/rest/v1/disponibilidad?trabajador_id=eq.${trabajadorSeleccionado.id}&fecha=eq.${fecha}`, {
+        method: 'DELETE', headers: H
+      });
+    } else {
+      // Insertar/actualizar
+      await fetch(`${SU}/rest/v1/disponibilidad`, {
+        method: 'POST', headers: H,
+        body: JSON.stringify({ trabajador_id: trabajadorSeleccionado.id, fecha, disponible: true })
+      });
+    }
+  } catch(e) {
+    // Revertir si falla
+    if (yaEstaba) dispMarcados.add(fecha);
+    else           dispMarcados.delete(fecha);
+    renderCalendarioDisp(diasDelMes);
+    mostrarToast('Error al guardar. Inténtalo de nuevo.');
+  }
 }
 
 // INIT
